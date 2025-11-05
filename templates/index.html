@@ -1,0 +1,1139 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GabStore</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
+</head>
+<body>
+    <div class="floating-shapes">
+        <div class="shape"></div>
+        <div class="shape"></div>
+        <div class="shape"></div>
+        <div class="shape"></div>
+    </div>
+    
+    <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="#">
+                <i class="fas fa-shopping-cart me-2 text-warning"></i>
+                <span class="text-gradient">GabStore</span>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#productos">Productos</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#categorias">Categorías</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="javascript:void(0)" onclick="showCoursesModal()">Cursos</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#contacto">Contacto</a>
+                    </li>
+                    <li class="nav-item">
+                        <button class="btn btn-outline-light btn-sm me-2" onclick="showCart()">
+                            <i class="fas fa-shopping-cart me-1"></i>Carrito <span id="cart-count" class="badge bg-danger">0</span>
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <a class="btn btn-gradient-primary btn-sm" href="{{ url_for('login') }}">
+                            <i class="fas fa-sign-in-alt me-1"></i>Admin
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <section class="hero-section">
+        <div class="container">
+            <div class="row align-items-center min-vh-100">
+                <div class="col-lg-6">
+                    <div class="hero-content">
+                        <h1 class="hero-title mb-4">
+                            <span class="text-gradient">Cuentas Premium</span><br>
+                            Al Mejor Precio
+                        </h1>
+                        <p class="hero-subtitle mb-4">
+                            Accede a tus plataformas favoritas con cuentas verificadas y garantizadas. 
+                            Netflix, Spotify, Disney+, y mucho más.
+                        </p>
+                        <div class="hero-buttons">
+                            <a href="#productos" class="btn btn-gradient-primary btn-lg me-3">
+                                <i class="fas fa-shopping-bag me-2"></i>Ver Productos
+                            </a>
+                            <a href="#contacto" class="btn btn-outline-light btn-lg">
+                                <i class="fab fa-whatsapp me-2"></i>WhatsApp
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="hero-image">
+                        {% for product in products[:8] %}
+                        <div class="floating-product">
+                            {% if product.image_url %}
+                            <img src="{{ product.image_url }}" alt="{{ product.name }}" class="floating-product-img">
+                            {% else %}
+                            <div class="floating-product-emoji">
+                                {% if product.type == 'Streaming' %}🎬
+                                {% elif product.type == 'Music' %}🎵
+                                {% elif product.type == 'Gaming' %}🎮
+                                {% elif product.type == 'Productivity' %}💼
+                                {% elif product.type == 'Cloud' %}☁️
+                                {% elif product.type == 'VPN' %}🔒
+                                {% elif product.type == 'Football' %}⚽
+                                {% else %}📦
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    {% if banners %}
+    <section class="banners-section py-4">
+        <div class="container">
+            <div id="bannersCarousel" class="carousel slide" data-bs-ride="carousel">
+                <div class="carousel-inner">
+                    {% for banner in banners %}
+                    <div class="carousel-item {% if loop.first %}active{% endif %}">
+                        <div class="banner-card" style="background: {{ banner.background_color }}; color: {{ banner.text_color }};">
+                            <div class="row align-items-center">
+                                <div class="col-md-8">
+                                    <div class="banner-content">
+                                        <h2 class="banner-title">{{ banner.title }}</h2>
+                                        <p class="banner-subtitle">{{ banner.subtitle }}</p>
+                                        {% if banner.button_text %}
+                                        <a href="{{ banner.button_link or '#productos' }}" class="btn btn-banner">
+                                            {{ banner.button_text }}
+                                        </a>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% if banner.image_url %}
+                                <div class="col-md-4">
+                                    <div class="banner-image">
+                                        <img src="{{ banner.image_url }}" alt="{{ banner.title }}" class="img-fluid">
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% if banners|length > 1 %}
+                <button class="carousel-control-prev" type="button" data-bs-target="#bannersCarousel" data-bs-slide="prev">
+                    <span class="carousel-control-prev-icon"></span>
+                </button>
+                <button class="carousel-control-next" type="button" data-bs-target="#bannersCarousel" data-bs-slide="next">
+                    <span class="carousel-control-next-icon"></span>
+                </button>
+                {% endif %}
+            </div>
+        </div>
+    </section>
+    {% endif %}
+
+    <section class="stats-section py-5">
+        <div class="container">
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="stat-card text-center">
+                        <div class="stat-icon">
+                            <i class="fas fa-shopping-bag text-success"></i>
+                        </div>
+                        <h3 class="stat-number" data-target="100">0</h3>
+                        <p class="stat-label">Ventas Realizadas</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stat-card text-center">
+                        <div class="stat-icon">
+                            <i class="fas fa-users text-primary"></i>
+                        </div>
+                        <h3 class="stat-number" data-target="100">0</h3>
+                        <p class="stat-label">Referencias Positivas</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stat-card text-center">
+                        <div class="stat-icon">
+                            <i class="fas fa-award text-warning"></i>
+                        </div>
+                        <h3 class="stat-number" data-target="5">0</h3>
+                        <p class="stat-label">Años de Experiencia</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="categorias" class="categories-section py-5">
+        <div class="container">
+            <div class="text-center mb-5">
+                <h2 class="section-title">
+                    <i class="fas fa-layer-group me-3 text-primary"></i>
+                    Nuestras Categorías
+                </h2>
+                <p class="section-subtitle">Encuentra exactamente lo que necesitas</p>
+            </div>
+            <div class="row g-4">
+                <div class="col-md-3 col-sm-6">
+                    <div class="category-card" onclick="filterByCategory('Streaming')">
+                        <div class="category-icon">
+                            <i class="fas fa-play-circle"></i>
+                        </div>
+                        <h5>🎬 Streaming</h5>
+                        <p>Netflix, Disney+, HBO Max, Prime Video</p>
+                        <span class="category-count" id="streaming-count">0 productos</span>
+                    </div>
+                </div>
+                <div class="col-md-3 col-sm-6">
+                    <div class="category-card" onclick="filterByCategory('Music')">
+                        <div class="category-icon">
+                            <i class="fas fa-music"></i>
+                        </div>
+                        <h5>🎵 Música</h5>
+                        <p>Spotify, Apple Music, YouTube Music</p>
+                        <span class="category-count" id="music-count">0 productos</span>
+                    </div>
+                </div>
+                <div class="col-md-3 col-sm-6">
+                    <div class="category-card" onclick="filterByCategory('Gaming')">
+                        <div class="category-icon">
+                            <i class="fas fa-gamepad"></i>
+                        </div>
+                        <h5>🎮 Gaming</h5>
+                        <p>PlayStation Plus, Xbox Game Pass</p>
+                        <span class="category-count" id="gaming-count">0 productos</span>
+                    </div>
+                </div>
+                <div class="col-md-3 col-sm-6">
+                    <div class="category-card" onclick="filterByCategory('VPN')">
+                        <div class="category-icon">
+                            <i class="fas fa-shield-alt"></i>
+                        </div>
+                        <h5>🔒 VPN & Seguridad</h5>
+                        <p>NordVPN, ExpressVPN, Surfshark</p>
+                        <span class="category-count" id="vpn-count">0 productos</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="productos" class="products-section py-5">
+        <div class="container">
+            <div class="text-center mb-5">
+                <h2 class="section-title">
+                    <i class="fas fa-star me-3 text-warning"></i>
+                    Productos Disponibles
+                </h2>
+                <p class="section-subtitle">Cuentas verificadas con garantía</p>
+            </div>
+            <div class="filter-buttons mb-4 text-center">
+                <button class="btn btn-outline-primary btn-sm filter-btn active" onclick="filterProducts('all')">
+                    <i class="fas fa-list me-1"></i>Todos
+                </button>
+                <button class="btn btn-outline-primary btn-sm filter-btn" onclick="filterProducts('Streaming')">
+                    🎬 Streaming
+                </button>
+                <button class="btn btn-outline-primary btn-sm filter-btn" onclick="filterProducts('Music')">
+                    🎵 Música
+                </button>
+                <button class="btn btn-outline-primary btn-sm filter-btn" onclick="filterProducts('Gaming')">
+                    🎮 Gaming
+                </button>
+                <button class="btn btn-outline-primary btn-sm filter-btn" onclick="filterProducts('VPN')">
+                    🔒 VPN
+                </button>
+            </div>
+            <div class="row g-4" id="productsGrid">
+                {% for product in products %}
+                <div class="col-lg-4 col-md-6 product-item" data-category="{{ product.type }}">
+                    <div class="product-card-clean">
+                        {% if product.has_discount or (active_discount and active_discount.applies_to_category(product.type)) %}
+                        <div class="discount-badge">
+                            -{{ product.discount_percentage or active_discount.percentage }}%
+                        </div>
+                        {% endif %}
+                        <div class="product-image-clean">
+                            {% if product.image_url %}
+                            <img src="{{ product.image_url }}" alt="{{ product.name }}" class="img-fluid" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                            {% endif %}
+                            <div class="product-icon-fallback-clean" {% if product.image_url %}style="display: none;"{% endif %}>
+                                {% set type_icons = {
+                                    'Streaming': '🎬',
+                                    'Music': '🎵', 
+                                    'Gaming': '🎮',
+                                    'Productivity': '💼',
+                                    'Cloud': '☁️',
+                                    'VPN': '🔒',
+                                    'Football': '⚽',
+                                    'Other': '📦'
+                                } %}
+                                {{ type_icons[product.type] or '📦' }}
+                            </div>
+                        </div>
+                        <div class="product-header-clean">
+                            <h4 class="product-title-clean">{{ product.name }}</h4>
+                        </div>
+                        
+                        <div class="product-body-clean">
+                            <div class="product-price-clean">
+                                {% if product.has_discount or (active_discount and active_discount.applies_to_category(product.type)) %}
+                                <span class="price-main">${{ "%.2f"|format(product.price) }}</span>
+                                <span class="price-crossed">${{ "%.2f"|format(product.original_price or (product.price / (1 - (active_discount.percentage or 0) / 100))) }}</span>
+                                {% else %}
+                                <span class="price-main">${{ "%.2f"|format(product.price) }}</span>
+                                <span class="price-crossed">${{ "%.2f"|format(product.price * 1.5) }}</span>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="product-stock-clean">
+                                {% if product.stock <= 5 %}
+                                <span class="stock-low-badge">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    {{ product.stock }} disponibles
+                                </span>
+                                {% else %}
+                                <span class="stock-good-badge">
+                                    <i class="fas fa-check-circle"></i>
+                                    {{ product.stock }} disponibles
+                                </span>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="product-features-clean">
+                                <span class="feature-badge">✅ Verificada</span>
+                                <span class="feature-badge">🛡️ Garantía 30d</span>
+                                <span class="feature-badge">⚡ Entrega inmediata</span>
+                            </div>
+                        </div>
+                        
+                        <div class="product-footer-clean">
+                            <button class="btn-add-cart" onclick="addToCart('{{ product.id }}', '{{ product.name }}', {{ product.price }})">
+                                <i class="fas fa-shopping-cart"></i>
+                                Agregar al Carrito
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <section class="feedback-section py-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-6 mb-4">
+                    <div class="feedback-card">
+                        <div class="feedback-header">
+                            <i class="fas fa-comments fa-3x text-primary mb-3"></i>
+                            <h3>Déjanos un Comentario</h3>
+                            <p class="text-muted">Tu opinión es muy importante para nosotros</p>
+                        </div>
+                        <div class="feedback-body">
+                            <form id="feedbackForm">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Tu Nombre</label>
+                                    <input type="text" class="form-control" placeholder="Escribe tu nombre" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Calificación</label>
+                                    <div class="rating-stars">
+                                        <i class="fas fa-star" data-rating="1"></i>
+                                        <i class="fas fa-star" data-rating="2"></i>
+                                        <i class="fas fa-star" data-rating="3"></i>
+                                        <i class="fas fa-star" data-rating="4"></i>
+                                        <i class="fas fa-star" data-rating="5"></i>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Tu Comentario</label>
+                                    <textarea class="form-control" rows="4" placeholder="Cuéntanos tu experiencia..." required></textarea>
+                                </div>
+                                <button type="submit" class="btn btn-gradient-primary w-100">
+                                    <i class="fas fa-paper-plane me-2"></i>Enviar Comentario
+                                </button>
+                            </form>
+                        </div>
+                        <div class="comments-display mt-4">
+                            <h5 class="mb-3"><i class="fas fa-comments me-2"></i>Comentarios Recientes</h5>
+                            <div id="commentsContainer">
+                                <!-- Comments will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-6 mb-4">
+                    <div class="request-card">
+                        <div class="request-header">
+                            <i class="fas fa-search fa-3x text-warning mb-3"></i>
+                            <h3>¿No Encuentras tu Producto?</h3>
+                            <p class="text-muted">No te preocupes, contáctanos para agregarlo</p>
+                        </div>
+                        <div class="request-body">
+                            <div class="request-features mb-4">
+                                <div class="feature-item">
+                                    <i class="fas fa-plus-circle text-success me-2"></i>
+                                    <span>Agregamos cualquier servicio</span>
+                                </div>
+                                <div class="feature-item">
+                                    <i class="fas fa-clock text-info me-2"></i>
+                                    <span>Respuesta en menos de 24h</span>
+                                </div>
+                                <div class="feature-item">
+                                    <i class="fas fa-shield-check text-primary me-2"></i>
+                                    <span>Misma garantía y calidad</span>
+                                </div>
+                            </div>
+                            <form id="requestForm">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Tu Nombre</label>
+                                    <input type="text" name="customer_name" class="form-control" placeholder="Escribe tu nombre" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Tu Email</label>
+                                    <input type="email" name="customer_email" class="form-control" placeholder="tu@email.com" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Servicio que Buscas</label>
+                                    <input type="text" name="service_name" class="form-control" placeholder="Ej: Crunchyroll, Adobe Creative, etc." required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Tu WhatsApp (Opcional)</label>
+                                    <input type="tel" name="phone" class="form-control" placeholder="+593 999 999 999">
+                                </div>
+                                <button type="submit" class="btn btn-gradient-success w-100">
+                                    <i class="fab fa-whatsapp me-2"></i>Solicitar Producto
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div class="modal fade" id="coursesModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content courses-modal-content">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title text-white">
+                        <i class="fas fa-graduation-cap me-2"></i>
+                        Cursos Online
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="coming-soon-card">
+                        <div class="coming-soon-icon">
+                            <i class="fas fa-rocket fa-4x text-primary mb-4"></i>
+                        </div>
+                        <h3 class="coming-soon-title">Próximamente</h3>
+                        <p class="coming-soon-text">
+                            Estamos preparando una sección completa de cursos online para que puedas aprender:
+                        </p>
+                        <div class="coming-soon-features">
+                            <div class="feature-item">
+                                <i class="fas fa-code text-info me-2"></i>
+                                <span>Desarrollo Web Completo</span>
+                            </div>
+                            <div class="feature-item">
+                                <i class="fas fa-robot text-warning me-2"></i>
+                                <span>Inteligencia Artificial</span>
+                            </div>
+                            <div class="feature-item">
+                                <i class="fas fa-key text-danger me-2"></i>
+                                <span>Obtener Cuentas Streaming Premium</span>
+                            </div>
+                            <div class="feature-item">
+                                <i class="fas fa-plus-circle text-success me-2"></i>
+                                <span>Y mucho más...</span>
+                            </div>
+                        </div>
+                        <div class="coming-soon-cta">
+                            <p class="mb-3">Sé el primero en enterarte cuando lancemos los cursos</p>
+                            <a href="#contacto" class="btn btn-gradient-success btn-lg" data-bs-dismiss="modal">
+                                <i class="fab fa-whatsapp me-2"></i>
+                                Notifícame por WhatsApp
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <section id="contacto" class="contact-section py-5">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-6">
+                    <div class="contact-content">
+                        <h2 class="section-title mb-4">
+                            <i class="fas fa-comments me-3 text-success"></i>
+                            ¿Necesitas Ayuda?
+                        </h2>
+                        <p class="mb-4">
+                            Estamos aquí para ayudarte. Contáctanos por WhatsApp para resolver 
+                            cualquier duda o realizar tu pedido personalizado.
+                        </p>
+                        <div class="contact-features">
+                            <div class="contact-feature">
+                                <i class="fas fa-clock text-primary me-3"></i>
+                                <span>Atención 24/7</span>
+                            </div>
+                            <div class="contact-feature">
+                                <i class="fas fa-headset text-success me-3"></i>
+                                <span>Soporte técnico</span>
+                            </div>
+                            <div class="contact-feature">
+                                <i class="fas fa-shield-check text-warning me-3"></i>
+                                <span>Compra segura</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="contact-card">
+                        <div class="contact-header">
+                            <i class="fab fa-whatsapp fa-3x text-success mb-3"></i>
+                            <h4>WhatsApp</h4>
+                        </div>
+                        <div class="contact-body">
+                            <p>Envíanos un mensaje y te responderemos al instante</p>
+                            <a href="https://wa.me/+593985051676" class="btn btn-gradient-success btn-lg w-100" target="_blank" rel="noopener noreferrer">
+                                <i class="fab fa-whatsapp me-2"></i>
+                                Chatear Ahora
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer-section py-4">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <div class="footer-brand">
+                        <i class="fas fa-shopping-cart me-2 text-warning"></i>
+                        <span class="text-gradient fw-bold">GabStore</span>
+                    </div>
+                    <p class="footer-text">Cuentas premium verificadas y garantizadas</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <div class="footer-links">
+                        <a href="#" class="footer-link">Términos</a>
+                        <a href="#" class="footer-link">Privacidad</a>
+                        <a href="#contacto" class="footer-link">Contacto</a>
+                    </div>
+                    <p class="footer-copyright">© 2025 GabStore. Todos los derechos reservados.</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <div class="whatsapp-float" onclick="openWhatsApp()">
+        <i class="fab fa-whatsapp"></i>
+        <span class="whatsapp-tooltip">¿Necesitas ayuda?</span>
+    </div>
+
+    {% if discount_banner and discount_banner.is_fullscreen %}
+    <div id="fullscreenBanner" class="fullscreen-banner" style="display: none;">
+        <div class="fullscreen-banner-content" style="background: {{ discount_banner.background_color }}; color: {{ discount_banner.text_color }};">
+            <button class="fullscreen-banner-close" onclick="closeFullscreenBanner()">
+                <i class="fas fa-times"></i>
+            </button>
+            <div class="fullscreen-banner-body">
+                {% if discount_banner.image_url %}
+                <div class="fullscreen-banner-image">
+                    <img src="{{ discount_banner.image_url }}" alt="{{ discount_banner.title }}">
+                </div>
+                {% endif %}
+                <div class="fullscreen-banner-text">
+                    <h1 class="fullscreen-banner-title">{{ discount_banner.title }}</h1>
+                    <p class="fullscreen-banner-subtitle">{{ discount_banner.subtitle }}</p>
+                    {% if discount_banner.button_text %}
+                    <a href="{{ discount_banner.button_link or '#productos' }}" class="btn btn-fullscreen-banner" onclick="closeFullscreenBanner()">
+                        {{ discount_banner.button_text }}
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="modal fade" id="cartModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-gradient-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-shopping-cart me-2"></i>
+                        Mi Carrito de Compras
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="cartContent">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Seguir Comprando</button>
+                    <button type="button" class="btn btn-danger" onclick="clearCart()">Vaciar Carrito</button>
+                    <button type="button" class="btn btn-gradient-success" onclick="checkoutWhatsApp()">
+                        <i class="fab fa-whatsapp me-1"></i>Finalizar Compra
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Mostrar banner de pantalla completa si existe
+        document.addEventListener('DOMContentLoaded', function() {
+            {% if discount_banner and discount_banner.is_fullscreen and discount_banner.auto_show %}
+            const fullscreenBanner = document.getElementById('fullscreenBanner');
+            if (fullscreenBanner && !localStorage.getItem('bannerClosed')) {
+                setTimeout(() => {
+                    fullscreenBanner.style.display = 'flex';
+                    fullscreenBanner.style.animation = 'fadeIn 0.5s ease-in';
+                }, {{ discount_banner.show_delay or 3000 }});
+            }
+            {% endif %}
+        });
+        
+        function closeFullscreenBanner() {
+            const banner = document.getElementById('fullscreenBanner');
+            if (banner) {
+                banner.style.animation = 'fadeOut 0.3s ease-out';
+                setTimeout(() => {
+                    banner.style.display = 'none';
+                    localStorage.setItem('bannerClosed', 'true');
+                }, 300);
+            }
+        }
+        
+        // Cerrar banner con tecla Escape
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeFullscreenBanner();
+            }
+        });
+        
+        setInterval(() => {
+            fetch('/api/check-discount')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.has_discount && !localStorage.getItem('bannerClosed')) {
+                        location.reload();
+                    }
+                })
+                .catch(error => console.log('Discount check failed:', error));
+        }, 30000);
+    </script>
+    <script>
+        // Filter products
+        function filterProducts(category) {
+            const items = document.querySelectorAll('.product-item');
+            const buttons = document.querySelectorAll('.filter-btn');
+            
+            buttons.forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            items.forEach(item => {
+                if (category === 'all' || item.dataset.category === category) {
+                    item.style.display = 'block';
+                    item.style.animation = 'fadeIn 0.5s ease-in';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+
+        // Add to cart
+        function addToCart(id, name, price) {
+            let cart = JSON.parse(localStorage.getItem('cart') || '[]');
+            const existingItem = cart.find(item => item.id === id);
+            
+            if (existingItem) {
+                existingItem.quantity += 1;
+            } else {
+                cart.push({ id, name, price, quantity: 1 });
+            }
+            
+            localStorage.setItem('cart', JSON.stringify(cart));
+            updateCartCount();
+            showToast(`${name} agregado al carrito`, 'success');
+        }
+        
+        function updateCartCount() {
+            const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+            const count = cart.reduce((total, item) => total + item.quantity, 0);
+            const cartBadge = document.getElementById('cart-count');
+            if (cartBadge) {
+                cartBadge.textContent = count;
+                cartBadge.style.display = count > 0 ? 'inline' : 'none';
+            }
+        }
+        
+        function showCart() {
+            const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+            const cartContent = document.getElementById('cartContent');
+            
+            if (cart.length === 0) {
+                cartContent.innerHTML = `
+                    <div class="text-center py-5">
+                        <i class="fas fa-shopping-cart fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">Tu carrito está vacío</h5>
+                        <p class="text-muted">Agrega algunos productos para comenzar</p>
+                    </div>
+                `;
+            } else {
+                let total = 0;
+                let cartHTML = '<div class="row">';
+                
+                cart.forEach((item, index) => {
+                    const itemTotal = item.price * item.quantity;
+                    total += itemTotal;
+                    
+                    cartHTML += `
+                        <div class="col-12 mb-3">
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-6">
+                                            <h6 class="mb-1">${item.name}</h6>
+                                            <small class="text-muted">$${item.price.toFixed(2)} c/u</small>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="input-group input-group-sm">
+                                                <button class="btn btn-outline-secondary" onclick="updateQuantity(${index}, -1)">
+                                                    <i class="fas fa-minus"></i>
+                                                </button>
+                                                <input type="text" class="form-control text-center" value="${item.quantity}" readonly>
+                                                <button class="btn btn-outline-secondary" onclick="updateQuantity(${index}, 1)">
+                                                    <i class="fas fa-plus"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-2 text-end">
+                                            <strong>$${itemTotal.toFixed(2)}</strong>
+                                        </div>
+                                        <div class="col-md-1 text-end">
+                                            <button class="btn btn-sm btn-outline-danger" onclick="removeFromCart(${index})">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                cartHTML += `
+                    </div>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-6 offset-md-6">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between">
+                                        <strong>Total:</strong>
+                                        <strong class="text-success">$${total.toFixed(2)}</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                cartContent.innerHTML = cartHTML;
+            }
+            
+            const modal = new bootstrap.Modal(document.getElementById('cartModal'));
+            modal.show();
+        }
+        
+        function updateQuantity(index, change) {
+            let cart = JSON.parse(localStorage.getItem('cart') || '[]');
+            cart[index].quantity += change;
+            
+            if (cart[index].quantity <= 0) {
+                cart.splice(index, 1);
+            }
+            
+            localStorage.setItem('cart', JSON.stringify(cart));
+            updateCartCount();
+            showCart();
+        }
+        
+        function removeFromCart(index) {
+            let cart = JSON.parse(localStorage.getItem('cart') || '[]');
+            cart.splice(index, 1);
+            localStorage.setItem('cart', JSON.stringify(cart));
+            updateCartCount();
+            showCart();
+            showToast('Producto eliminado del carrito', 'info');
+        }
+        
+        function clearCart() {
+            if (confirm('¿Estás seguro de que quieres vaciar el carrito?')) {
+                localStorage.removeItem('cart');
+                updateCartCount();
+                showCart();
+                showToast('Carrito vaciado', 'info');
+            }
+        }
+        
+        function checkoutWhatsApp() {
+            const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+            if (cart.length === 0) {
+                showToast('El carrito está vacío', 'warning');
+                return;
+            }
+            
+            let message = '🛍️ *PEDIDO DESDE GABSTORE*\n\n';
+            let total = 0;
+            
+            cart.forEach(item => {
+                const itemTotal = item.price * item.quantity;
+                total += itemTotal;
+                message += `• ${item.name}\n   Cantidad: ${item.quantity}\n   Precio: $${itemTotal.toFixed(2)}\n\n`;
+            });
+            
+            message += `*TOTAL: $${total.toFixed(2)}*\n\n📱 ¡Gracias por tu pedido!`;
+            
+            const whatsappUrl = `https://wa.me/+593985051676?text=${encodeURIComponent(message)}`;
+            window.open(whatsappUrl, '_blank');
+            
+            // Clear cart after checkout
+            localStorage.removeItem('cart');
+            updateCartCount();
+            bootstrap.Modal.getInstance(document.getElementById('cartModal')).hide();
+            showToast('Pedido enviado por WhatsApp', 'success');
+        }
+        
+        function showToast(message, type) {
+            const toast = document.createElement('div');
+            toast.className = `alert alert-${type} position-fixed`;
+            toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+            toast.innerHTML = `${message} <button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>`;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+        
+        function openWhatsApp() {
+            const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+            let message = '¡Hola! Me interesa estos productos:\n\n';
+            
+            if (cart.length > 0) {
+                cart.forEach(item => {
+                    message += `• ${item.name} x${item.quantity} - $${(item.price * item.quantity).toFixed(2)}\n`;
+                });
+                const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                message += `\nTotal: $${total.toFixed(2)}`;
+            } else {
+                message = '¡Hola! Me interesa conocer más sobre sus productos.';
+            }
+            
+            const whatsappUrl = `https://wa.me/+593985051676?text=${encodeURIComponent(message)}`;
+            window.open(whatsappUrl, '_blank');
+        }
+
+        // Filter by category from category cards
+        function filterByCategory(category) {
+            document.getElementById('productos').scrollIntoView({ behavior: 'smooth' });
+            setTimeout(() => {
+                filterProducts(category);
+            }, 500);
+        }
+
+        // Fullscreen banner functions
+        function showFullscreenBanner() {
+            const banner = document.getElementById('fullscreenBanner');
+            if (banner) {
+                banner.style.display = 'flex';
+                document.body.style.overflow = 'hidden';
+            }
+        }
+        
+        function closeFullscreenBanner() {
+            const banner = document.getElementById('fullscreenBanner');
+            if (banner) {
+                banner.style.display = 'none';
+                document.body.style.overflow = 'auto';
+                localStorage.setItem('bannerClosed', 'true');
+            }
+        }
+        
+        // Check for discount and show banner
+        function checkDiscountBanner() {
+            {% if discount_banner and discount_banner.auto_show %}
+            const bannerClosed = localStorage.getItem('bannerClosed');
+            if (!bannerClosed) {
+                setTimeout(() => {
+                    showFullscreenBanner();
+                }, {{ discount_banner.show_delay or 3000 }});
+            }
+            {% endif %}
+        }
+
+        // Counter Animation
+        function animateCounters() {
+            const counters = document.querySelectorAll('.stat-number');
+            
+            counters.forEach(counter => {
+                const target = parseInt(counter.getAttribute('data-target'));
+                const increment = target / 100;
+                let current = 0;
+                
+                const updateCounter = () => {
+                    if (current < target) {
+                        current += increment;
+                        counter.textContent = '+' + Math.ceil(current);
+                        setTimeout(updateCounter, 20);
+                    } else {
+                        counter.textContent = '+' + target;
+                        counter.classList.add('counting');
+                    }
+                };
+                
+                updateCounter();
+            });
+        }
+        
+        // Intersection Observer for counter animation
+        function initCounterObserver() {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        animateCounters();
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, { threshold: 0.5 });
+            
+            const statsSection = document.querySelector('.stats-section');
+            if (statsSection) {
+                observer.observe(statsSection);
+            }
+        }
+
+        // Update category counts
+        document.addEventListener('DOMContentLoaded', function() {
+            const categories = ['Streaming', 'Music', 'Gaming', 'VPN'];
+            categories.forEach(category => {
+                const count = document.querySelectorAll(`[data-category="${category}"]`).length;
+                const element = document.getElementById(`${category.toLowerCase()}-count`);
+                if (element) {
+                    element.textContent = `${count} productos`;
+                }
+            });
+            updateCartCount();
+            checkDiscountBanner();
+            initCounterObserver();
+        });
+
+        // Smooth scrolling
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth' });
+                }
+            });
+        });
+        
+        // Close banner on escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeFullscreenBanner();
+            }
+        });
+        
+        // Show courses modal
+        function showCoursesModal() {
+            const modal = new bootstrap.Modal(document.getElementById('coursesModal'));
+            modal.show();
+        }
+        
+        // Rating stars functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const stars = document.querySelectorAll('.rating-stars i');
+            let selectedRating = 0;
+            
+            stars.forEach((star, index) => {
+                star.addEventListener('click', function() {
+                    selectedRating = index + 1;
+                    updateStars(selectedRating);
+                });
+                
+                star.addEventListener('mouseover', function() {
+                    updateStars(index + 1);
+                });
+            });
+            
+            document.querySelector('.rating-stars').addEventListener('mouseleave', function() {
+                updateStars(selectedRating);
+            });
+            
+            function updateStars(rating) {
+                stars.forEach((star, index) => {
+                    if (index < rating) {
+                        star.classList.add('active');
+                    } else {
+                        star.classList.remove('active');
+                    }
+                });
+            }
+            
+            // Load and display comments
+            function loadComments() {
+                fetch('/api/comments')
+                .then(response => response.json())
+                .then(data => {
+                    const container = document.getElementById('commentsContainer');
+                    
+                    if (data.comments.length === 0) {
+                        container.innerHTML = '<p class="text-muted text-center">Sé el primero en dejar un comentario</p>';
+                        return;
+                    }
+                    
+                    container.innerHTML = data.comments.slice(0, 3).map(comment => `
+                        <div class="comment-item">
+                            <div class="comment-header">
+                                <span class="comment-name">${comment.name}</span>
+                                <span class="comment-rating">${'⭐'.repeat(comment.rating)}</span>
+                            </div>
+                            <p class="comment-text">"${comment.text}"</p>
+                            <div class="comment-date">${comment.date}</div>
+                        </div>
+                    `).join('');
+                })
+                .catch(error => {
+                    console.error('Error loading comments:', error);
+                });
+            }
+            
+            // Save comment to localStorage
+            function saveComment(name, rating, text) {
+                const comments = JSON.parse(localStorage.getItem('gabstore_comments') || '[]');
+                const newComment = {
+                    name: name,
+                    rating: rating,
+                    text: text,
+                    date: new Date().toLocaleDateString('es-ES', { 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric' 
+                    })
+                };
+                comments.push(newComment);
+                localStorage.setItem('gabstore_comments', JSON.stringify(comments));
+                loadComments();
+            }
+            
+            // Feedback form submission
+            document.getElementById('feedbackForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                const name = this.querySelector('input[type="text"]').value;
+                const comment = this.querySelector('textarea').value;
+                
+                if (selectedRating === 0) {
+                    showToast('Por favor selecciona una calificación', 'warning');
+                    return;
+                }
+                
+                // Save comment to database
+                fetch('/api/comments', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name: name,
+                        rating: selectedRating,
+                        text: comment
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        loadComments();
+                        this.reset();
+                        selectedRating = 0;
+                        updateStars(0);
+                        showToast('¡Gracias por tu comentario!', 'success');
+                    } else {
+                        showToast('Error al guardar comentario', 'danger');
+                    }
+                })
+                .catch(error => {
+                    showToast('Error de conexión', 'danger');
+                });
+            });
+            
+            // Load comments on page load
+            loadComments();
+            
+            // Product request form submission
+            document.getElementById('requestForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                const formData = new FormData(this);
+                const customerName = formData.get('customer_name');
+                const customerEmail = formData.get('customer_email');
+                const serviceName = formData.get('service_name');
+                const phone = formData.get('phone');
+                
+                // Send suggestion to admin panel
+                fetch('/api/suggestions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        customer_name: customerName,
+                        customer_email: customerEmail,
+                        service_name: serviceName,
+                        phone: phone
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        this.reset();
+                        showToast('Solicitud enviada al administrador', 'success');
+                    } else {
+                        showToast('Error al enviar solicitud', 'danger');
+                    }
+                })
+                .catch(error => {
+                    showToast('Error de conexión', 'danger');
+                });
+            });
+        });
+    </script>
+</body>
+</html>

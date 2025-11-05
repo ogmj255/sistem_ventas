@@ -1,0 +1,1453 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📊 Dashboard - Sistema de Ventas</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
+</head>
+<body>
+    <div class="floating-shapes">
+        <div class="shape"></div>
+        <div class="shape"></div>
+        <div class="shape"></div>
+        <div class="shape"></div>
+    </div>
+    
+    <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="#">
+                <i class="fas fa-chart-line me-2 text-warning"></i>
+                <span class="text-gradient">Dashboard</span>
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="btn btn-outline-light btn-sm me-2" href="{{ url_for('admin') }}">
+                    <i class="fas fa-database me-1"></i>Inventario
+                </a>
+                <span class="navbar-text me-3 text-white">
+                    <i class="fas fa-user-crown me-1 text-warning"></i>
+                    {{ current_user.email }}
+                </span>
+                <a class="btn btn-gradient-danger btn-sm" href="{{ url_for('logout') }}">
+                    <i class="fas fa-sign-out-alt me-1"></i>
+                    Salir
+                </a>
+            </div>
+        </div>
+    </nav>
+    
+    <div class="container main-container">
+        <div class="dashboard-header mb-4">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="dashboard-title mb-0">
+                        <i class="fas fa-store me-3 text-primary"></i>
+                        Dashboard de Tienda
+                    </h1>
+                    <p class="text-muted mb-0">Gestiona los productos de tu tienda online</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <a href="/" class="btn btn-gradient-success" target="_blank">
+                        <i class="fas fa-external-link-alt me-2"></i>Ver Tienda
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert alert-modern alert-{{ 'danger' if category == 'danger' else 'success' if category == 'success' else 'info' }} alert-dismissible fade show">
+            <i class="fas fa-{{ 'exclamation-triangle' if category == 'danger' else 'check-circle' if category == 'success' else 'info-circle' }} me-2"></i>
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+        
+        <!-- Store Statistics -->
+        <div class="row mb-4">
+            <div class="col-md-3 mb-3">
+                <div class="card stats-card stats-primary">
+                    <div class="card-body text-center">
+                        <div class="stats-icon">
+                            <i class="fas fa-store"></i>
+                        </div>
+                        <h5 class="stats-title">Productos Activos</h5>
+                        <h2 class="counter" id="activeProductsCount">0</h2>
+                        <small class="text-muted">En la tienda</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card stats-card stats-success">
+                    <div class="card-body text-center">
+                        <div class="stats-icon">
+                            <i class="fas fa-boxes"></i>
+                        </div>
+                        <h5 class="stats-title">Stock Total</h5>
+                        <h2 class="counter" id="totalStockCount">0</h2>
+                        <small class="text-muted">Cuentas disponibles</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card stats-card stats-warning">
+                    <div class="card-body text-center">
+                        <div class="stats-icon">
+                            <i class="fas fa-dollar-sign"></i>
+                        </div>
+                        <h5 class="stats-title">Valor Tienda</h5>
+                        <h2 class="counter" id="storeValueCount">$0</h2>
+                        <small class="text-muted">Inventario visible</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card stats-card stats-info">
+                    <div class="card-body text-center">
+                        <div class="stats-icon">
+                            <i class="fas fa-eye"></i>
+                        </div>
+                        <h5 class="stats-title">Visibilidad</h5>
+                        <h2 class="counter" id="visibilityCount">100%</h2>
+                        <small class="text-muted">Productos visibles</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Store Products Management -->
+        <div class="store-products-section mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-gradient-info text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0">
+                            <i class="fas fa-store me-2"></i>
+                            Productos de la Tienda
+                        </h6>
+                        <div class="btn-group" role="group">
+                            <button class="btn btn-sm btn-success" onclick="showAddProductModal()">
+                                <i class="fas fa-plus me-1"></i>Agregar
+                            </button>
+                            <button class="btn btn-sm btn-info" onclick="showImageGeneratorModal()">
+                                <i class="fas fa-image me-1"></i>Imágenes
+                            </button>
+                            <button class="btn btn-sm btn-light" onclick="refreshStoreProducts()">
+                                <i class="fas fa-sync me-1"></i>Actualizar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-8">
+                            <div class="alert alert-info mb-0">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <strong>Arrastra y suelta</strong> las tarjetas para cambiar el orden de los productos en la tienda.
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="btn-group w-100" role="group">
+                                <button class="btn btn-outline-success btn-sm" onclick="showAllProducts()">
+                                    <i class="fas fa-eye me-1"></i>Mostrar Todos
+                                </button>
+                                <button class="btn btn-outline-warning btn-sm" onclick="hideAllProducts()">
+                                    <i class="fas fa-eye-slash me-1"></i>Ocultar Todos
+                                </button>
+                                <button class="btn btn-outline-danger btn-sm" onclick="bulkDeleteProducts()">
+                                    <i class="fas fa-trash me-1"></i>Eliminar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="storeProductsGrid" class="row g-3 sortable-grid">
+                        <!-- Products loaded dynamically -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Banners Management Section -->
+    <div class="container">
+        <div class="banners-management-section mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-gradient-warning text-dark">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0">
+                            <i class="fas fa-bullhorn me-2"></i>
+                            Gestión de Banners Publicitarios
+                        </h6>
+                        <div class="btn-group" role="group">
+                            <button class="btn btn-sm btn-dark" onclick="showAddBannerModal()">
+                                <i class="fas fa-plus me-1"></i>Nuevo Banner
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="showDiscountEventModal()">
+                                <i class="fas fa-percentage me-1"></i>Evento Descuento
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="bannersGrid" class="row g-3">
+                        <!-- Banners loaded dynamically -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Product Edit Modal -->
+    <div class="modal fade" id="productEditModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-gradient-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-edit me-2"></i>
+                        Editar Producto de Tienda
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="productEditForm">
+                        <input type="hidden" id="editProductName" name="product_name">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">🏷️ Nombre del Producto</label>
+                            <input type="text" id="editName" class="form-control" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">💰 Precio (USD)</label>
+                            <input type="number" id="editPrice" class="form-control" step="0.01" min="0" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">🖼️ URL de Imagen</label>
+                            <input type="url" id="editImageUrl" class="form-control" placeholder="https://ejemplo.com/imagen.jpg">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">📊 Stock Disponible</label>
+                            <input type="number" id="editStock" class="form-control" readonly>
+                            <small class="text-muted">El stock se calcula automáticamente desde las cuentas disponibles</small>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-gradient-primary" onclick="saveProductChanges()">Guardar Cambios</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Add Product Modal -->
+    <div class="modal fade" id="addProductModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-gradient-success text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-plus me-2"></i>
+                        Agregar Nuevo Producto
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addProductForm">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">🏷️ Nombre del Producto</label>
+                                    <input type="text" id="addProductName" class="form-control" placeholder="Netflix Premium" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">💰 Precio (USD)</label>
+                                    <input type="number" id="addProductPrice" class="form-control" step="0.01" min="0" placeholder="15.99" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">📂 Categoría</label>
+                                    <select id="addProductType" class="form-select" required>
+                                        <option value="Streaming">🎬 Streaming</option>
+                                        <option value="Music">🎵 Música</option>
+                                        <option value="Gaming">🎮 Gaming</option>
+                                        <option value="Productivity">💼 Productividad</option>
+                                        <option value="Cloud">☁️ Cloud</option>
+                                        <option value="VPN">🔒 VPN</option>
+                                        <option value="Other">📦 Otro</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">📊 Cantidad Inicial</label>
+                                    <input type="number" id="addProductQuantity" class="form-control" min="1" value="1" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">🖼️ URL de Imagen</label>
+                            <input type="url" id="addProductImageUrl" class="form-control" placeholder="https://ejemplo.com/logo.jpg">
+                            <small class="text-muted">Usa el generador de imágenes para obtener el tamaño correcto</small>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">📧 Email de Ejemplo</label>
+                                    <input type="email" id="addProductEmail" class="form-control" placeholder="cuenta@servicio.com" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">🔑 Contraseña de Ejemplo</label>
+                                    <input type="text" id="addProductPassword" class="form-control" placeholder="password123" required>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-gradient-success" onclick="saveNewProduct()">Crear Producto</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Image Generator Modal -->
+    <div class="modal fade" id="imageGeneratorModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header bg-gradient-info text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-image me-2"></i>
+                        Generador de Imágenes para Productos
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card border-primary">
+                                <div class="card-header bg-primary text-white">
+                                    <h6 class="mb-0">🖼️ Redimensionar Imagen</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">URL de Imagen Original</label>
+                                        <input type="url" id="originalImageUrl" class="form-control" placeholder="https://ejemplo.com/logo-original.jpg">
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-12">
+                                            <div class="mb-3">
+                                                <label class="form-label fw-bold">Formato de Imagen</label>
+                                                <select id="imageFormat" class="form-select">
+                                                    <option value="400x200" selected>400x200px - Tienda Principal</option>
+                                                    <option value="300x150">300x150px - Tienda Compacta</option>
+                                                    <option value="80x80">80x80px - Dashboard/Miniatura</option>
+                                                    <option value="200x200">200x200px - Cuadrada</option>
+                                                    <option value="600x300">600x300px - Banner Grande</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="text-center">
+                                        <button class="btn btn-primary" onclick="generateResizedImage()">
+                                            <i class="fas fa-magic me-2"></i>Generar Imagen
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card border-success">
+                                <div class="card-header bg-success text-white">
+                                    <h6 class="mb-0">🌐 Buscar Logos Online</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">Nombre del Servicio</label>
+                                        <input type="text" id="serviceName" class="form-control" placeholder="Netflix">
+                                    </div>
+                                    <div class="text-center mb-3">
+                                        <button class="btn btn-success" onclick="searchLogos()">
+                                            <i class="fas fa-search me-2"></i>Buscar Logos
+                                        </button>
+                                    </div>
+                                    <div id="logoResults" class="row g-2">
+                                        <!-- Logo results here -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card border-warning">
+                                <div class="card-header bg-warning text-dark">
+                                    <h6 class="mb-0">🖼️ Vista Previa y Resultado</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div id="imagePreview" class="mb-3">
+                                        <p class="text-muted">La imagen procesada aparecerá aquí</p>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">URL Final (Copiar y Pegar)</label>
+                                        <div class="input-group">
+                                            <input type="text" id="finalImageUrl" class="form-control" readonly>
+                                            <button class="btn btn-outline-primary" onclick="copyImageUrl()">
+                                                <i class="fas fa-copy"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    <button type="button" class="btn btn-gradient-primary" onclick="useGeneratedImage()">
+                        <i class="fas fa-check me-1"></i>Usar Esta Imagen
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Add Banner Modal -->
+    <div class="modal fade" id="addBannerModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-gradient-warning text-dark">
+                    <h5 class="modal-title">
+                        <i class="fas fa-bullhorn me-2"></i>
+                        Crear Nuevo Banner
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="bannerForm">
+                        <input type="hidden" id="bannerId">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">🏷️ Título Principal</label>
+                                    <input type="text" id="bannerTitle" class="form-control" placeholder="¡Oferta Especial!" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">📝 Subtítulo</label>
+                                    <input type="text" id="bannerSubtitle" class="form-control" placeholder="Hasta 50% de descuento">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">🎨 Color de Fondo</label>
+                                    <input type="color" id="bannerBgColor" class="form-control form-control-color" value="#667eea">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">✏️ Color de Texto</label>
+                                    <input type="color" id="bannerTextColor" class="form-control form-control-color" value="#ffffff">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">🖼️ URL de Imagen (Opcional)</label>
+                            <input type="url" id="bannerImageUrl" class="form-control" placeholder="https://ejemplo.com/banner.jpg">
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">🔘 Texto del Botón</label>
+                                    <input type="text" id="bannerButtonText" class="form-control" placeholder="Ver Ofertas">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">🔗 Enlace del Botón</label>
+                                    <input type="text" id="bannerButtonLink" class="form-control" placeholder="#productos">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">🏷️ Tipo de Banner</label>
+                                    <select id="bannerType" class="form-select">
+                                        <option value="promotion">Promoción</option>
+                                        <option value="seasonal">Temporada</option>
+                                        <option value="discount">Descuento</option>
+                                        <option value="new">Nuevo Producto</option>
+                                        <option value="announcement">Anuncio</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">🔢 Orden de Visualización</label>
+                                    <input type="number" id="bannerOrder" class="form-control" value="0" min="0">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="bannerActive" checked>
+                            <label class="form-check-label fw-bold" for="bannerActive">
+                                ✅ Banner Activo (Visible en la tienda)
+                            </label>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-gradient-warning" onclick="saveBanner()">Guardar Banner</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Discount Event Modal -->
+    <div class="modal fade" id="discountEventModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-gradient-danger text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-percentage me-2"></i>
+                        Crear Evento de Descuento
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Evento Automático:</strong> Se creará un banner de pantalla completa y se aplicará el descuento automáticamente.
+                    </div>
+                    <form id="discountEventForm">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">🏷️ Nombre del Evento</label>
+                                    <input type="text" id="discountName" class="form-control" placeholder="Oferta Flash" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">📊 Porcentaje de Descuento</label>
+                                    <div class="input-group">
+                                        <input type="number" id="discountPercentage" class="form-control" min="1" max="90" value="20" required>
+                                        <span class="input-group-text">%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">📅 Tipo de Evento</label>
+                                    <select id="discountEventType" class="form-select" onchange="toggleDateFields()">
+                                        <option value="flash">⚡ Flash (Inmediato)</option>
+                                        <option value="weekend">🎆 Fin de Semana</option>
+                                        <option value="holiday">🎉 Día Festivo</option>
+                                        <option value="scheduled">📅 Programado</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row" id="dateFields" style="display: none;">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">📅 Fecha de Inicio</label>
+                                    <input type="datetime-local" id="discountStartDate" class="form-control">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">📅 Fecha de Fin</label>
+                                    <input type="datetime-local" id="discountEndDate" class="form-control">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">📋 Categorías Aplicables</label>
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="catStreaming" value="Streaming">
+                                        <label class="form-check-label" for="catStreaming">🎬 Streaming</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="catMusic" value="Music">
+                                        <label class="form-check-label" for="catMusic">🎵 Música</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="catGaming" value="Gaming">
+                                        <label class="form-check-label" for="catGaming">🎮 Gaming</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="catVPN" value="VPN">
+                                        <label class="form-check-label" for="catVPN">🔒 VPN</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <small class="text-muted">Si no seleccionas ninguna, se aplicará a todas las categorías</small>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-gradient-danger" onclick="createDiscountEvent()">
+                        <i class="fas fa-rocket me-1"></i>Crear Evento
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Store Products Management
+        let storeProducts = [];
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            loadStoreProducts();
+            initializeSortable();
+            updateStatistics();
+            loadBanners();
+        });
+        
+        function loadStoreProducts() {
+            fetch('/api/store-products')
+                .then(response => response.json())
+                .then(data => {
+                    storeProducts = data.products;
+                    renderStoreProducts();
+                })
+                .catch(error => {
+                    console.error('Error loading store products:', error);
+                    showToast('Error al cargar productos de la tienda', 'danger');
+                });
+        }
+        
+        function renderStoreProducts() {
+            const grid = document.getElementById('storeProductsGrid');
+            if (!grid) return;
+            
+            if (storeProducts.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-12 text-center py-4">
+                        <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No hay productos en la tienda</h5>
+                        <p class="text-muted">Los productos se generan automáticamente desde las cuentas disponibles</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            grid.innerHTML = storeProducts.map((product, index) => `
+                <div class="col-md-4 product-card-container" data-product="${product.name}" data-index="${index}">
+                    <div class="card product-card-admin h-100" draggable="false">
+                        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                            <div class="drag-handle" title="Arrastra para reordenar">
+                                <i class="fas fa-grip-vertical text-muted"></i>
+                            </div>
+                            <div class="btn-group" role="group">
+                                <button class="btn btn-sm btn-outline-success" onclick="toggleProductVisibility('${product.name}', true)" title="Mostrar en tienda">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-warning" onclick="toggleProductVisibility('${product.name}', false)" title="Ocultar de tienda">
+                                    <i class="fas fa-eye-slash"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-primary" onclick="editStoreProduct('${product.name}')" title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger" onclick="deleteStoreProduct('${product.name}')" title="Eliminar">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body text-center">
+                            ${product.image_url ? 
+                                `<div class="product-image-admin mb-3">
+                                    <img src="${product.image_url}" alt="${product.name}" class="img-fluid" 
+                                         style="width: 80px; height: 80px; object-fit: cover; border-radius: 10px;" 
+                                         onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                                    <div class="product-icon-large" style="display: none;">${getProductIcon(product.type)}</div>
+                                </div>` : 
+                                `<div class="product-icon-large mb-3">${getProductIcon(product.type)}</div>`
+                            }
+                            <h6 class="card-title">${product.name}</h6>
+                            <p class="text-muted small">${product.type}</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="badge bg-success">$${product.price.toFixed(2)}</span>
+                                <span class="badge ${product.stock <= 5 ? 'bg-warning' : 'bg-info'}">
+                                    ${product.stock} en stock
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            
+            // Add drag listeners after rendering
+            if (window.addDragListeners) {
+                window.addDragListeners();
+            }
+        }
+        
+        function getProductIcon(type) {
+            const icons = {
+                'Streaming': '🎬',
+                'Music': '🎵',
+                'Gaming': '🎮',
+                'Productivity': '💼',
+                'Cloud': '☁️',
+                'VPN': '🔒',
+                'Football': '⚽',
+                'Other': '📦'
+            };
+            return icons[type] || '📦';
+        }
+        
+        function editStoreProduct(productName) {
+            const product = storeProducts.find(p => p.name === productName);
+            if (!product) return;
+            
+            document.getElementById('editProductName').value = product.name;
+            document.getElementById('editName').value = product.name;
+            document.getElementById('editPrice').value = product.price;
+            document.getElementById('editImageUrl').value = product.image_url || '';
+            document.getElementById('editStock').value = product.stock;
+            
+            const modal = new bootstrap.Modal(document.getElementById('productEditModal'));
+            modal.show();
+        }
+        
+        function saveProductChanges() {
+            const formData = {
+                product_name: document.getElementById('editProductName').value,
+                price: parseFloat(document.getElementById('editPrice').value),
+                image_url: document.getElementById('editImageUrl').value
+            };
+            
+            fetch('/api/update-product', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Producto actualizado correctamente', 'success');
+                    bootstrap.Modal.getInstance(document.getElementById('productEditModal')).hide();
+                    loadStoreProducts();
+                } else {
+                    showToast(data.message || 'Error al actualizar producto', 'danger');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('Error al actualizar producto', 'danger');
+            });
+        }
+        
+        function refreshStoreProducts() {
+            loadStoreProducts();
+            showToast('Productos actualizados', 'info');
+        }
+        
+        // Drag and Drop functionality
+        function initializeSortable() {
+            const grid = document.getElementById('storeProductsGrid');
+            if (!grid) return;
+            
+            let draggedElement = null;
+            let draggedIndex = null;
+            
+            // Add event listeners to each product card
+            function addDragListeners() {
+                const cards = grid.querySelectorAll('.product-card-container');
+                cards.forEach((card, index) => {
+                    const dragHandle = card.querySelector('.drag-handle');
+                    const productCard = card.querySelector('.product-card-admin');
+                    
+                    // Make the entire card draggable when clicking the handle
+                    dragHandle.addEventListener('mousedown', function(e) {
+                        productCard.setAttribute('draggable', 'true');
+                    });
+                    
+                    productCard.addEventListener('dragstart', function(e) {
+                        draggedElement = card;
+                        draggedIndex = index;
+                        e.dataTransfer.effectAllowed = 'move';
+                        e.dataTransfer.setData('text/html', card.outerHTML);
+                        card.style.opacity = '0.5';
+                        card.classList.add('dragging');
+                    });
+                    
+                    productCard.addEventListener('dragend', function(e) {
+                        card.style.opacity = '1';
+                        card.classList.remove('dragging');
+                        productCard.setAttribute('draggable', 'false');
+                        draggedElement = null;
+                        draggedIndex = null;
+                    });
+                    
+                    card.addEventListener('dragover', function(e) {
+                        e.preventDefault();
+                        e.dataTransfer.dropEffect = 'move';
+                        if (draggedElement && draggedElement !== card) {
+                            card.classList.add('drag-over');
+                        }
+                    });
+                    
+                    card.addEventListener('dragleave', function(e) {
+                        card.classList.remove('drag-over');
+                    });
+                    
+                    card.addEventListener('drop', function(e) {
+                        e.preventDefault();
+                        card.classList.remove('drag-over');
+                        
+                        if (draggedElement && draggedElement !== card) {
+                            const allCards = Array.from(grid.querySelectorAll('.product-card-container'));
+                            const draggedIdx = allCards.indexOf(draggedElement);
+                            const targetIdx = allCards.indexOf(card);
+                            
+                            if (draggedIdx < targetIdx) {
+                                card.parentNode.insertBefore(draggedElement, card.nextSibling);
+                            } else {
+                                card.parentNode.insertBefore(draggedElement, card);
+                            }
+                            
+                            updateProductOrder();
+                        }
+                    });
+                });
+            }
+            
+            // Call this function whenever products are rendered
+            window.addDragListeners = addDragListeners;
+        }
+        
+        function updateProductOrder() {
+            const containers = document.querySelectorAll('.product-card-container');
+            const newOrder = Array.from(containers).map((container, index) => ({
+                name: container.dataset.product,
+                order: index
+            }));
+            
+            fetch('/api/update-product-order', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ order: newOrder })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Orden actualizado', 'success');
+                } else {
+                    showToast('Error al actualizar orden', 'danger');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('Error al actualizar orden', 'danger');
+            });
+        }
+        
+        function showToast(message, type) {
+            const toast = document.createElement('div');
+            toast.className = `alert alert-${type} position-fixed`;
+            toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+            toast.innerHTML = `${message} <button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>`;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        
+        // Banners Management
+        let banners = [];
+        
+        function loadBanners() {
+            fetch('/api/banners')
+                .then(response => response.json())
+                .then(data => {
+                    banners = data.banners;
+                    renderBanners();
+                })
+                .catch(error => {
+                    console.error('Error loading banners:', error);
+                });
+        }
+        
+        function renderBanners() {
+            const grid = document.getElementById('bannersGrid');
+            if (!grid) return;
+            
+            if (banners.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-12 text-center py-4">
+                        <i class="fas fa-bullhorn fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No hay banners creados</h5>
+                        <p class="text-muted">Crea tu primer banner publicitario</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            grid.innerHTML = banners.map(banner => `
+                <div class="col-md-6 col-lg-4">
+                    <div class="card banner-card-admin h-100">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <div>
+                                <span class="badge ${banner.is_active ? 'bg-success' : 'bg-secondary'}">
+                                    ${banner.is_active ? '✅ Activo' : '❌ Inactivo'}
+                                </span>
+                                <span class="badge bg-info ms-1">${getBannerTypeLabel(banner.banner_type)}</span>
+                            </div>
+                            <div class="btn-group" role="group">
+                                <button class="btn btn-sm btn-outline-primary" onclick="editBanner('${banner.id}')" title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger" onclick="deleteBanner('${banner.id}')" title="Eliminar">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="banner-preview mb-3" style="background: ${banner.background_color}; color: ${banner.text_color}; padding: 15px; border-radius: 8px; min-height: 100px;">
+                                <h6 class="mb-1">${banner.title}</h6>
+                                <p class="mb-2 small">${banner.subtitle}</p>
+                                ${banner.button_text ? `
+                                    <button class="btn btn-sm btn-light">
+                                        ${banner.button_text}
+                                    </button>
+                                ` : ''}
+                            </div>
+                            <small class="text-muted">Orden: ${banner.display_order}</small>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function getBannerTypeLabel(type) {
+            const types = {
+                'promotion': '🎯 Promoción',
+                'seasonal': '🎄 Temporada',
+                'discount': '💰 Descuento',
+                'new': '🆕 Nuevo',
+                'announcement': '📢 Anuncio'
+            };
+            return types[type] || '📋 General';
+        }
+        
+        function showAddBannerModal() {
+            document.getElementById('bannerForm').reset();
+            document.getElementById('bannerId').value = '';
+            document.querySelector('#addBannerModal .modal-title').innerHTML = '<i class="fas fa-plus me-2"></i>Crear Nuevo Banner';
+            const modal = new bootstrap.Modal(document.getElementById('addBannerModal'));
+            modal.show();
+        }
+        
+        function editBanner(bannerId) {
+            const banner = banners.find(b => b.id === bannerId);
+            if (!banner) return;
+            
+            document.getElementById('bannerId').value = banner.id;
+            document.getElementById('bannerTitle').value = banner.title;
+            document.getElementById('bannerSubtitle').value = banner.subtitle;
+            document.getElementById('bannerBgColor').value = banner.background_color;
+            document.getElementById('bannerTextColor').value = banner.text_color;
+            document.getElementById('bannerImageUrl').value = banner.image_url;
+            document.getElementById('bannerButtonText').value = banner.button_text;
+            document.getElementById('bannerButtonLink').value = banner.button_link;
+            document.getElementById('bannerType').value = banner.banner_type;
+            document.getElementById('bannerOrder').value = banner.display_order;
+            document.getElementById('bannerActive').checked = banner.is_active;
+            
+            document.querySelector('#addBannerModal .modal-title').innerHTML = '<i class="fas fa-edit me-2"></i>Editar Banner';
+            const modal = new bootstrap.Modal(document.getElementById('addBannerModal'));
+            modal.show();
+        }
+        
+        function saveBanner() {
+            const bannerId = document.getElementById('bannerId').value;
+            const formData = {
+                title: document.getElementById('bannerTitle').value,
+                subtitle: document.getElementById('bannerSubtitle').value,
+                background_color: document.getElementById('bannerBgColor').value,
+                text_color: document.getElementById('bannerTextColor').value,
+                image_url: document.getElementById('bannerImageUrl').value,
+                button_text: document.getElementById('bannerButtonText').value,
+                button_link: document.getElementById('bannerButtonLink').value,
+                banner_type: document.getElementById('bannerType').value,
+                display_order: parseInt(document.getElementById('bannerOrder').value),
+                is_active: document.getElementById('bannerActive').checked
+            };
+            
+            if (!formData.title) {
+                showToast('El título es requerido', 'danger');
+                return;
+            }
+            
+            const url = bannerId ? '/api/update-banner' : '/api/add-banner';
+            if (bannerId) {
+                formData.banner_id = bannerId;
+            }
+            
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(data.message, 'success');
+                    bootstrap.Modal.getInstance(document.getElementById('addBannerModal')).hide();
+                    loadBanners();
+                } else {
+                    showToast(data.message || 'Error al guardar banner', 'danger');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('Error al guardar banner', 'danger');
+            });
+        }
+        
+        function deleteBanner(bannerId) {
+            if (!confirm('¿Eliminar este banner?')) return;
+            
+            fetch('/api/delete-banner', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ banner_id: bannerId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(data.message, 'success');
+                    loadBanners();
+                } else {
+                    showToast(data.message || 'Error al eliminar banner', 'danger');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('Error al eliminar banner', 'danger');
+            });
+        }
+        
+        // Product Management Functions
+        function toggleProductVisibility(productName, visible) {
+            const status = visible ? 'available' : 'hidden';
+            
+            fetch('/api/update-product-visibility', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ 
+                    product_name: productName, 
+                    visible: visible 
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(`Producto ${visible ? 'mostrado' : 'ocultado'} en la tienda`, 'success');
+                    loadStoreProducts();
+                    updateStatistics();
+                } else {
+                    showToast(data.message || 'Error al actualizar visibilidad', 'danger');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('Error al actualizar visibilidad', 'danger');
+            });
+        }
+        
+        function deleteStoreProduct(productName) {
+            if (!confirm(`¿Eliminar completamente el producto "${productName}" y todas sus cuentas?`)) {
+                return;
+            }
+            
+            fetch('/api/delete-product', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ product_name: productName })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(`Producto "${productName}" eliminado completamente`, 'success');
+                    loadStoreProducts();
+                    updateStatistics();
+                } else {
+                    showToast(data.message || 'Error al eliminar producto', 'danger');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('Error al eliminar producto', 'danger');
+            });
+        }
+        
+        function showAllProducts() {
+            if (!confirm('¿Mostrar todos los productos en la tienda?')) return;
+            
+            fetch('/api/bulk-visibility', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ action: 'show_all' })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Todos los productos están ahora visibles', 'success');
+                    loadStoreProducts();
+                    updateStatistics();
+                } else {
+                    showToast('Error en operación masiva', 'danger');
+                }
+            });
+        }
+        
+        function hideAllProducts() {
+            if (!confirm('¿Ocultar todos los productos de la tienda?')) return;
+            
+            fetch('/api/bulk-visibility', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ action: 'hide_all' })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Todos los productos están ahora ocultos', 'warning');
+                    loadStoreProducts();
+                    updateStatistics();
+                } else {
+                    showToast('Error en operación masiva', 'danger');
+                }
+            });
+        }
+        
+        function bulkDeleteProducts() {
+            if (!confirm('¿ELIMINAR TODOS los productos y sus cuentas? Esta acción NO se puede deshacer.')) return;
+            if (!confirm('¿Estás COMPLETAMENTE seguro? Se eliminarán TODAS las cuentas.')) return;
+            
+            fetch('/api/bulk-delete-products', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(`${data.deleted_count} productos eliminados completamente`, 'success');
+                    loadStoreProducts();
+                    updateStatistics();
+                } else {
+                    showToast('Error al eliminar productos', 'danger');
+                }
+            });
+        }
+        
+        function updateStatistics() {
+            fetch('/api/store-statistics')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('activeProductsCount').textContent = data.active_products || 0;
+                    document.getElementById('totalStockCount').textContent = data.total_stock || 0;
+                    document.getElementById('storeValueCount').textContent = `$${(data.store_value || 0).toFixed(2)}`;
+                    document.getElementById('visibilityCount').textContent = `${data.visibility_percentage || 0}%`;
+                })
+                .catch(error => console.error('Error loading statistics:', error));
+        }
+        
+        // Add Product Modal Functions
+        function showAddProductModal() {
+            const modal = new bootstrap.Modal(document.getElementById('addProductModal'));
+            modal.show();
+        }
+        
+        function saveNewProduct() {
+            const formData = {
+                name: document.getElementById('addProductName').value,
+                price: parseFloat(document.getElementById('addProductPrice').value),
+                type: document.getElementById('addProductType').value,
+                quantity: parseInt(document.getElementById('addProductQuantity').value),
+                image_url: document.getElementById('addProductImageUrl').value,
+                email: document.getElementById('addProductEmail').value,
+                password: document.getElementById('addProductPassword').value
+            };
+            
+            fetch('/api/add-product', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Producto creado correctamente', 'success');
+                    bootstrap.Modal.getInstance(document.getElementById('addProductModal')).hide();
+                    loadStoreProducts();
+                    updateStatistics();
+                    // Reset form
+                    document.getElementById('addProductForm').reset();
+                } else {
+                    showToast(data.message || 'Error al crear producto', 'danger');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('Error al crear producto', 'danger');
+            });
+        }
+        
+        // Image Generator Functions
+        function showImageGeneratorModal() {
+            const modal = new bootstrap.Modal(document.getElementById('imageGeneratorModal'));
+            modal.show();
+        }
+        
+        function generateResizedImage() {
+            const originalUrl = document.getElementById('originalImageUrl').value;
+            const format = document.getElementById('imageFormat').value;
+            
+            if (!originalUrl) {
+                showToast('Por favor ingresa una URL de imagen', 'warning');
+                return;
+            }
+            
+            const [width, height] = format.split('x');
+            
+            // Using multiple image services for better reliability
+            const services = [
+                `https://images.weserv.nl/?url=${encodeURIComponent(originalUrl)}&w=${width}&h=${height}&fit=cover&output=webp`,
+                `https://wsrv.nl/?url=${encodeURIComponent(originalUrl)}&w=${width}&h=${height}&fit=cover`,
+                `https://images.weserv.nl/?url=${encodeURIComponent(originalUrl)}&w=${width}&h=${height}&fit=contain&bg=white`
+            ];
+            
+            const resizedUrl = services[0]; // Primary service
+            
+            document.getElementById('finalImageUrl').value = resizedUrl;
+            document.getElementById('imagePreview').innerHTML = `
+                <div class="text-center">
+                    <img src="${resizedUrl}" alt="Imagen redimensionada" class="img-fluid" 
+                         style="max-width: 300px; border-radius: 10px; border: 2px solid #ddd;" 
+                         onerror="this.src='${services[1]}'">
+                    <p class="mt-2 text-muted small">Formato: ${width}x${height}px</p>
+                </div>
+            `;
+            
+            showToast('Imagen generada correctamente', 'success');
+        }
+        
+        function searchLogos() {
+            const serviceName = document.getElementById('serviceName').value;
+            if (!serviceName) {
+                showToast('Por favor ingresa el nombre del servicio', 'warning');
+                return;
+            }
+            
+            // Common logo URLs for popular services
+            const logoUrls = {
+                'netflix': 'https://upload.wikimedia.org/wikipedia/commons/0/08/Netflix_2015_logo.svg',
+                'spotify': 'https://upload.wikimedia.org/wikipedia/commons/1/19/Spotify_logo_without_text.svg',
+                'disney': 'https://upload.wikimedia.org/wikipedia/commons/3/3e/Disney%2B_logo.svg',
+                'youtube': 'https://upload.wikimedia.org/wikipedia/commons/b/b8/YouTube_Logo_2017.svg',
+                'amazon': 'https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg',
+                'hbo': 'https://upload.wikimedia.org/wikipedia/commons/d/de/HBO_logo.svg',
+                'apple': 'https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg',
+                'microsoft': 'https://upload.wikimedia.org/wikipedia/commons/9/96/Microsoft_logo_%282012%29.svg',
+                'google': 'https://upload.wikimedia.org/wikipedia/commons/2/2f/Google_2015_logo.svg',
+                'twitch': 'https://upload.wikimedia.org/wikipedia/commons/2/26/Twitch_logo.svg',
+                'paramount': 'https://upload.wikimedia.org/wikipedia/commons/a/a5/Paramount_Plus_logo.svg',
+                'crunchyroll': 'https://upload.wikimedia.org/wikipedia/commons/f/f6/Crunchyroll_Logo.svg'
+            };
+            
+            const searchKey = serviceName.toLowerCase();
+            const logoResults = document.getElementById('logoResults');
+            
+            if (logoUrls[searchKey]) {
+                logoResults.innerHTML = `
+                    <div class="col-6">
+                        <div class="card logo-option" onclick="selectLogo('${logoUrls[searchKey]}')" style="cursor: pointer;">
+                            <img src="${logoUrls[searchKey]}" class="card-img-top" style="height: 80px; object-fit: contain; padding: 10px;">
+                            <div class="card-body p-2 text-center">
+                                <small class="text-success"><i class="fas fa-check-circle"></i> Logo oficial</small>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                // Generic search URL
+                // Try multiple logo sources
+                const logoSources = [
+                    `https://logo.clearbit.com/${serviceName.toLowerCase()}.com`,
+                    `https://img.logo.dev/${serviceName.toLowerCase()}.com?token=pk_X-1ZO13ESWmr-jNLuOOOvQ`,
+                    `https://logo.uplead.com/${serviceName.toLowerCase()}.com`
+                ];
+                
+                logoResults.innerHTML = logoSources.map((url, index) => `
+                    <div class="col-4">
+                        <div class="card logo-option" onclick="selectLogo('${url}')" style="cursor: pointer;">
+                            <img src="${url}" class="card-img-top" style="height: 60px; object-fit: contain; padding: 8px;" 
+                                 onerror="this.parentElement.parentElement.style.display='none'">
+                            <div class="card-body p-1 text-center">
+                                <small class="text-info">Fuente ${index + 1}</small>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+        
+        function selectLogo(logoUrl) {
+            document.getElementById('originalImageUrl').value = logoUrl;
+            
+            // Highlight selected logo
+            document.querySelectorAll('.logo-option').forEach(card => {
+                card.classList.remove('border-success');
+                card.style.borderWidth = '1px';
+            });
+            
+            event.currentTarget.classList.add('border-success');
+            event.currentTarget.style.borderWidth = '3px';
+            
+            showToast('Logo seleccionado - Ahora genera la imagen', 'success');
+        }
+        
+        function copyImageUrl() {
+            const urlInput = document.getElementById('finalImageUrl');
+            urlInput.select();
+            document.execCommand('copy');
+            showToast('URL copiada al portapapeles', 'success');
+        }
+        
+        function useGeneratedImage() {
+            const imageUrl = document.getElementById('finalImageUrl').value;
+            if (!imageUrl) {
+                showToast('No hay imagen generada para usar', 'warning');
+                return;
+            }
+            
+            // If add product modal is open, fill the image URL
+            const addProductImageInput = document.getElementById('addProductImageUrl');
+            if (addProductImageInput) {
+                addProductImageInput.value = imageUrl;
+            }
+            
+            // If edit product modal is open, fill the image URL
+            const editImageInput = document.getElementById('editImageUrl');
+            if (editImageInput) {
+                editImageInput.value = imageUrl;
+            }
+            
+            bootstrap.Modal.getInstance(document.getElementById('imageGeneratorModal')).hide();
+            showToast('Imagen aplicada al formulario', 'success');
+        }
+        
+        // Discount Event Functions
+        function showDiscountEventModal() {
+            const modal = new bootstrap.Modal(document.getElementById('discountEventModal'));
+            modal.show();
+        }
+        
+        function toggleDateFields() {
+            const eventType = document.getElementById('discountEventType').value;
+            const dateFields = document.getElementById('dateFields');
+            dateFields.style.display = eventType === 'scheduled' ? 'block' : 'none';
+        }
+        
+        function createDiscountEvent() {
+            const categories = [];
+            ['catStreaming', 'catMusic', 'catGaming', 'catVPN'].forEach(id => {
+                const checkbox = document.getElementById(id);
+                if (checkbox.checked) {
+                    categories.push(checkbox.value);
+                }
+            });
+            
+            const eventData = {
+                name: document.getElementById('discountName').value,
+                percentage: parseInt(document.getElementById('discountPercentage').value),
+                event_type: document.getElementById('discountEventType').value,
+                categories: categories,
+                start_date: document.getElementById('discountStartDate').value,
+                end_date: document.getElementById('discountEndDate').value
+            };
+            
+            if (!eventData.name || !eventData.percentage) {
+                showToast('Nombre y porcentaje son requeridos', 'danger');
+                return;
+            }
+            
+            fetch('/api/create-discount-event', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(eventData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Evento de descuento creado correctamente', 'success');
+                    bootstrap.Modal.getInstance(document.getElementById('discountEventModal')).hide();
+                    loadBanners();
+                    // Reset form
+                    document.getElementById('discountEventForm').reset();
+                } else {
+                    showToast(data.message || 'Error al crear evento', 'danger');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('Error al crear evento de descuento', 'danger');
+            });
+        }
+    </script>
+</body>
+</html>

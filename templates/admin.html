@@ -1,0 +1,1420 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚀 Admin Panel - Sistema de Ventas</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
+</head>
+<body>
+    <!-- Floating Background Elements -->
+    <div class="floating-shapes">
+        <div class="shape"></div>
+        <div class="shape"></div>
+        <div class="shape"></div>
+        <div class="shape"></div>
+    </div>
+    
+    <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="#">
+                <i class="fas fa-rocket me-2 text-warning"></i>
+                <span class="text-gradient">Sistema de Ventas</span>
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="btn btn-outline-light btn-sm me-2" href="{{ url_for('admin_dashboard') }}">
+                    <i class="fas fa-chart-line me-1"></i>Dashboard
+                </a>
+                <span class="navbar-text me-3 text-white">
+                    <i class="fas fa-user-crown me-1 text-warning"></i>
+                    {{ current_user.email }}
+                </span>
+                <a class="btn btn-gradient-danger btn-sm" href="{{ url_for('logout') }}">
+                    <i class="fas fa-sign-out-alt me-1"></i>
+                    Salir
+                </a>
+            </div>
+        </div>
+    </nav>
+    
+    <div class="container main-container">
+        <!-- Dashboard Header -->
+        <div class="dashboard-header mb-4">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="dashboard-title mb-0">
+                        <i class="fas fa-tachometer-alt me-3 text-primary"></i>
+                        Panel de Administración
+                    </h1>
+                    <p class="text-muted mb-0">Gestiona tu inventario de cuentas digitales</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <div class="btn-group" role="group">
+                        <button class="btn btn-gradient-primary" onclick="exportData()">
+                            <i class="fas fa-download me-2"></i>Exportar
+                        </button>
+                        <button class="btn btn-gradient-success" onclick="location.reload()">
+                            <i class="fas fa-sync-alt me-2"></i>Actualizar
+                        </button>
+                        <button class="btn btn-gradient-warning" onclick="showMaintenanceModal()">
+                            <i class="fas fa-tools me-2"></i>Mantenimiento
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert alert-modern alert-{{ 'danger' if category == 'danger' else 'success' if category == 'success' else 'info' }} alert-dismissible fade show">
+            <i class="fas fa-{{ 'exclamation-triangle' if category == 'danger' else 'check-circle' if category == 'success' else 'info-circle' }} me-2"></i>
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+        
+        <!-- Estadísticas Mejoradas -->
+        <div class="row mb-4">
+            <div class="col-md-3 mb-3">
+                <div class="card stats-card stats-primary">
+                    <div class="card-body text-center">
+                        <div class="stats-icon">
+                            <i class="fas fa-database"></i>
+                        </div>
+                        <h5 class="stats-title">Total Cuentas</h5>
+                        <h2 class="counter" data-target="{{ accounts|length }}">0</h2>
+                        <div class="stats-trend">
+                            <i class="fas fa-arrow-up text-success"></i>
+                            <small>+12% este mes</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card stats-card stats-success">
+                    <div class="card-body text-center">
+                        <div class="stats-icon">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <h5 class="stats-title">Disponibles</h5>
+                        <h2 class="counter" data-target="{{ accounts|selectattr('status', 'equalto', 'available')|list|length }}">0</h2>
+                        <div class="stats-trend">
+                            <i class="fas fa-arrow-up text-success"></i>
+                            <small>{{ ((accounts|selectattr('status', 'equalto', 'available')|list|length / accounts|length * 100) if accounts|length > 0 else 0)|round(1) }}% disponible</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card stats-card stats-warning">
+                    <div class="card-body text-center">
+                        <div class="stats-icon">
+                            <i class="fas fa-dollar-sign"></i>
+                        </div>
+                        <h5 class="stats-title">Valor Total</h5>
+                        <h2 class="counter" data-prefix="$" data-target="{{ accounts|selectattr('status', 'equalto', 'available')|sum(attribute='price') }}">$0</h2>
+                        <div class="stats-trend">
+                            <i class="fas fa-chart-line text-warning"></i>
+                            <small>Inventario activo</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card stats-card stats-info">
+                    <div class="card-body text-center">
+                        <div class="stats-icon">
+                            <i class="fas fa-layer-group"></i>
+                        </div>
+                        <h5 class="stats-title">Categorías</h5>
+                        <h2 class="counter" data-target="{{ accounts|map(attribute='type')|unique|list|length }}">0</h2>
+                        <div class="stats-trend">
+                            <i class="fas fa-tags text-info"></i>
+                            <small>Tipos diferentes</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Filtros Avanzados -->
+        <div class="filters-section mb-4">
+            <div class="row align-items-center">
+                <div class="col-md-3">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                        <input type="text" class="form-control" id="searchInput" placeholder="Buscar cuentas...">
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select" id="typeFilter">
+                        <option value="">Todos los tipos</option>
+                        <option value="Streaming">🎬 Streaming</option>
+                        <option value="Music">🎵 Música</option>
+                        <option value="Gaming">🎮 Gaming</option>
+                        <option value="Productivity">💼 Productividad</option>
+                        <option value="Cloud">☁️ Cloud</option>
+                        <option value="VPN">🔒 VPN</option>
+                        <option value="Football">⚽ Fútbol</option>
+                        <option value="Other">📦 Otro</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select" id="statusFilter">
+                        <option value="">Todos los estados</option>
+                        <option value="available">✅ Disponible</option>
+                        <option value="sold">💰 Vendida</option>
+                        <option value="failed">❌ No Funcional</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select" id="sortBy">
+                        <option value="name">Ordenar por nombre</option>
+                        <option value="price">Ordenar por precio</option>
+                        <option value="type">Ordenar por tipo</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <div class="btn-group w-100" role="group">
+                        <button class="btn btn-outline-primary" onclick="selectAll()">
+                            <i class="fas fa-check-square"></i> Seleccionar Todo
+                        </button>
+                        <button class="btn btn-outline-danger" onclick="bulkDelete()">
+                            <i class="fas fa-trash"></i> Eliminar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Formulario Mejorado para Agregar Cuenta -->
+        <div class="add-form" id="addForm" style="display: none;">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="mb-0">
+                    <i class="fas fa-plus-circle me-2 text-success"></i>
+                    Agregar Nueva Cuenta
+                </h4>
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleAddForm()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form method="POST" action="{{ url_for('add_account') }}" class="needs-validation" novalidate>
+                <input type="hidden" name="csrf_token" value="{{ session.csrf_token }}">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">📧 Email de la Cuenta</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                                <input type="email" name="email" class="form-control" placeholder="netflix@example.com" required>
+                                <div class="invalid-feedback">Por favor ingresa un email válido.</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">🔑 Contraseña</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-key"></i></span>
+                                <input type="text" name="password" class="form-control" placeholder="Password123!" required>
+                                <button class="btn btn-outline-secondary" type="button" onclick="generatePassword()">
+                                    <i class="fas fa-random"></i>
+                                </button>
+                                <div class="invalid-feedback">La contraseña es requerida.</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">🏷️ Servicio</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-tag"></i></span>
+                                <input type="text" name="name" class="form-control" placeholder="Netflix" required>
+                                <div class="invalid-feedback">El nombre es requerido.</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">📋 Plan</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-list"></i></span>
+                                <select name="plan" class="form-select">
+                                    <option value="">Sin plan específico</option>
+                                    <option value="Básico">Básico</option>
+                                    <option value="Estándar">Estándar</option>
+                                    <option value="Premium">Premium</option>
+                                    <option value="Individual">Individual</option>
+                                    <option value="Familiar">Familiar</option>
+                                    <option value="Pro">Pro</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">📂 Categoría</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-layer-group"></i></span>
+                                <select name="type" class="form-select" required>
+                                    <option value="">Seleccionar categoría...</option>
+                                    <option value="Streaming">🎬 Streaming</option>
+                                    <option value="Music">🎵 Música</option>
+                                    <option value="Gaming">🎮 Gaming</option>
+                                    <option value="Productivity">💼 Productividad</option>
+                                    <option value="Cloud">☁️ Cloud Storage</option>
+                                    <option value="VPN">🔒 VPN & Seguridad</option>
+                                    <option value="Football">⚽ Fútbol</option>
+                                    <option value="Other">📦 Otros</option>
+                                </select>
+                                <div class="invalid-feedback">Selecciona una categoría.</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">💰 Precio (USD)</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" name="price" class="form-control" step="0.01" min="0" placeholder="15.99" required>
+                                <div class="invalid-feedback">Ingresa un precio válido.</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">📊 Cantidad</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-hashtag"></i></span>
+                                <input type="number" name="quantity" class="form-control" min="1" value="1" required>
+                                <div class="invalid-feedback">La cantidad debe ser mayor a 0.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">🖼️ URL de Imagen del Producto</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-link"></i></span>
+                                <input type="url" name="image_url" class="form-control" placeholder="https://ejemplo.com/imagen.jpg">
+                            </div>
+                            <small class="text-muted">URL directa de la imagen (opcional)</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-center">
+                    <button type="submit" class="btn btn-gradient-success btn-lg px-5">
+                        <i class="fas fa-plus me-2"></i>
+                        Agregar Cuenta al Inventario
+                    </button>
+                </div>
+            </form>
+        </div>
+        
+        <!-- Botón para mostrar formulario -->
+        <div class="text-center mb-4" id="showAddBtn">
+            <button class="btn btn-gradient-primary btn-lg" onclick="toggleAddForm()">
+                <i class="fas fa-plus-circle me-2"></i>
+                Agregar Nueva Cuenta
+            </button>
+        </div>
+        
+        <!-- Tabla Mejorada de Cuentas -->
+        <!-- Filtros Rápidos Mejorados -->
+        <div class="quick-filters-section mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-gradient-primary text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0">
+                            <i class="fas fa-filter me-2"></i>
+                            Filtros Rápidos
+                        </h6>
+                        <button class="btn btn-sm btn-light" onclick="clearAllFilters()">
+                            <i class="fas fa-times me-1"></i>Limpiar
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Filtros por Estado -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-muted">Por Estado:</label>
+                        <div class="btn-group-toggle d-flex flex-wrap gap-2" data-toggle="buttons">
+                            <button class="btn btn-outline-success btn-sm filter-btn" onclick="quickFilter('available')">
+                                <i class="fas fa-check-circle me-1"></i>Disponibles
+                            </button>
+                            <button class="btn btn-outline-info btn-sm filter-btn" onclick="quickFilter('sold')">
+                                <i class="fas fa-dollar-sign me-1"></i>Vendidas
+                            </button>
+                            <button class="btn btn-outline-danger btn-sm filter-btn" onclick="quickFilter('failed')">
+                                <i class="fas fa-times-circle me-1"></i>No Funcionales
+                            </button>
+                            <button class="btn btn-outline-secondary btn-sm filter-btn" onclick="quickFilter('')">
+                                <i class="fas fa-list me-1"></i>Todas
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Filtros por Servicio -->
+                    <div class="mb-0">
+                        <label class="form-label fw-bold text-muted">Por Servicio:</label>
+                        <div id="quickFiltersContainer" class="d-flex flex-wrap gap-2">
+                            <!-- Los botones se cargan dinámicamente -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="accounts-table">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="mb-0">
+                    <i class="fas fa-list me-2 text-primary"></i>
+                    Inventario de Cuentas
+                </h4>
+                <div class="table-actions">
+                    <button class="btn btn-outline-primary btn-sm" onclick="copySelected()">
+                        <i class="fas fa-copy"></i> Copiar Seleccionadas
+                    </button>
+                    <a href="/api/accounts" class="btn btn-outline-info btn-sm" target="_blank">
+                        <i class="fas fa-code"></i> API
+                    </a>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover" id="accountsTable">
+                    <thead>
+                        <tr>
+                            <th width="40">
+                                <input type="checkbox" class="form-check-input" id="selectAll">
+                            </th>
+                            <th>Cuenta</th>
+                            <th>Servicio</th>
+                            <th>Categoría</th>
+                            <th>Precio</th>
+                            <th>Estado</th>
+                            <th width="120">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for acc in accounts %}
+                        <tr data-type="{{ acc.type or '' }}" data-status="{{ acc.status or 'unknown' }}" data-name="{{ (acc.name or '')|lower }}" data-email="{{ (acc.email or '')|lower }}">
+                            <td>
+                                <input type="checkbox" class="form-check-input row-select" value="{{ acc.id }}">
+                            </td>
+                            <td class="account-email">
+                                <div>
+                                    <strong class="text-primary">{{ acc.email or 'Email no disponible' }}</strong>
+                                    <br>
+                                    <small class="text-muted">{{ acc.password or 'Password no disponible' }}</small>
+                                    <button class="btn btn-sm btn-link p-0 ms-2" onclick="copyCredentials('{{ acc.email }}', '{{ acc.password }}')" title="Copiar credenciales">
+                                        <i class="fas fa-copy text-muted"></i>
+                                    </button>
+                                </div>
+                            </td>
+                            <td class="account-name">
+                                <strong>{{ acc.name or 'Servicio no disponible' }}</strong>
+                            </td>
+                            <td>
+                                {% set type_icons = {
+                                    'Streaming': '🎬',
+                                    'Music': '🎵', 
+                                    'Gaming': '🎮',
+                                    'Productivity': '💼',
+                                    'Cloud': '☁️',
+                                    'VPN': '🔒',
+                                    'Football': '⚽',
+                                    'Other': '📦'
+                                } %}
+                                <span class="badge type-badge bg-gradient-secondary">
+                                    {{ type_icons[acc.type or 'Other'] or '📦' }} {{ acc.type or 'Otro' }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="price-display text-success fw-bold">${{ "%.2f"|format(acc.price) }}</span>
+                            </td>
+                            <td>
+                                {% if acc.status == 'available' %}
+                                <span class="badge status-badge bg-gradient-success">✅ Disponible</span>
+                                {% elif acc.status == 'sold' %}
+                                <span class="badge status-badge bg-gradient-info">💰 Vendida</span>
+                                {% elif acc.status == 'failed' %}
+                                <span class="badge status-badge bg-gradient-danger">❌ No Funcional</span>
+                                {% else %}
+                                <span class="badge status-badge bg-gradient-secondary">❓ Desconocido</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <button class="btn btn-sm btn-outline-info" onclick="viewAccount('{{ acc.id }}')" title="Ver detalles">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-warning" onclick="editAccount('{{ acc.id }}')" title="Editar">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <form method="POST" action="{{ url_for('delete_account', account_id=acc.id) }}" class="d-inline">
+                                        <input type="hidden" name="csrf_token" value="{{ session.csrf_token }}">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" 
+                                                onclick="return confirm('¿Eliminar cuenta {{ acc.name }}?')" title="Eliminar">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center no-data-state">
+                                <div class="py-5">
+                                    <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                                    <h5 class="text-muted">No hay cuentas en el inventario</h5>
+                                    <p class="text-muted">Agrega tu primera cuenta para comenzar</p>
+                                    <button class="btn btn-gradient-primary" onclick="toggleAddForm()">
+                                        <i class="fas fa-plus me-2"></i>Agregar Primera Cuenta
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="d-flex justify-content-between align-items-center mt-3">
+                <div class="pagination-info">
+                    <span class="text-muted">Mostrando <span id="currentRange">1-10</span> de <span id="totalAccounts">{{ accounts|length }}</span> cuentas</span>
+                </div>
+                <nav>
+                    <ul class="pagination pagination-sm mb-0" id="pagination">
+                        <!-- Pagination buttons will be generated by JavaScript -->
+                    </ul>
+                </nav>
+            </div>
+        </div>
+        <br>
+        
+        
+        <!-- Mensajes de Usuarios -->
+        <div class="user-messages-section mb-4">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-gradient-primary text-white">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-comments me-2"></i>
+                                    Comentarios de Usuarios
+                                </h6>
+                                <button class="btn btn-sm btn-light" onclick="refreshComments()">
+                                    <i class="fas fa-sync me-1"></i>Actualizar
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                            <div id="adminCommentsContainer">
+                                <div class="text-center py-3">
+                                    <i class="fas fa-spinner fa-spin"></i>
+                                    <p class="text-muted mb-0">Cargando comentarios...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-gradient-success text-white">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-lightbulb me-2"></i>
+                                    Solicitudes de Productos
+                                </h6>
+                                <button class="btn btn-sm btn-light" onclick="refreshSuggestions()">
+                                    <i class="fas fa-sync me-1"></i>Actualizar
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                            <div id="adminSuggestionsContainer">
+                                <div class="text-center py-3">
+                                    <i class="fas fa-spinner fa-spin"></i>
+                                    <p class="text-muted mb-0">Cargando solicitudes...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Panel de Acciones Mejorado -->
+        <div class="quick-actions-enhanced mb-4">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <div class="card action-card-modern h-100">
+                        <div class="card-body text-center p-4">
+                            <div class="action-icon bg-primary">
+                                <i class="fas fa-chart-pie"></i>
+                            </div>
+                            <h6 class="mt-3 mb-2">Reportes</h6>
+                            <p class="text-muted small mb-3">Generar informes detallados</p>
+                            <button class="btn btn-primary btn-sm w-100" onclick="generateReport()">
+                                <i class="fas fa-file-pdf me-1"></i>Generar PDF
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card action-card-modern h-100">
+                        <div class="card-body text-center p-4">
+                            <div class="action-icon bg-success">
+                                <i class="fas fa-upload"></i>
+                            </div>
+                            <h6 class="mt-3 mb-2">Importar</h6>
+                            <p class="text-muted small mb-3">Añadir cuentas masivamente</p>
+                            <button class="btn btn-success btn-sm w-100" onclick="showImportModal()">
+                                <i class="fas fa-file-text me-1"></i>Importar Texto
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card action-card-modern h-100">
+                        <div class="card-body text-center p-4">
+                            <div class="action-icon bg-warning">
+                                <i class="fas fa-tools"></i>
+                            </div>
+                            <h6 class="mt-3 mb-2">Mantenimiento</h6>
+                            <p class="text-muted small mb-3">Optimizar y limpiar datos</p>
+                            <button class="btn btn-warning btn-sm w-100" onclick="showMaintenanceModal()">
+                                <i class="fas fa-wrench me-1"></i>Mantenimiento
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card action-card-modern h-100">
+                        <div class="card-body text-center p-4">
+                            <div class="action-icon bg-info">
+                                <i class="fas fa-chart-line"></i>
+                            </div>
+                            <h6 class="mt-3 mb-2">Estadísticas</h6>
+                            <p class="text-muted small mb-3">Análisis y reportes</p>
+                            <button class="btn btn-info btn-sm w-100" onclick="showAnalytics()">
+                                <i class="fas fa-chart-pie me-1"></i>Ver Stats
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Product Edit Modal -->
+    <div class="modal fade" id="productEditModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-gradient-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-edit me-2"></i>
+                        Editar Producto de Tienda
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="productEditForm">
+                        <input type="hidden" id="editProductName" name="product_name">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">🏷️ Nombre del Producto</label>
+                            <input type="text" id="editName" class="form-control" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">💰 Precio (USD)</label>
+                            <input type="number" id="editPrice" class="form-control" step="0.01" min="0" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">🖼️ URL de Imagen</label>
+                            <input type="url" id="editImageUrl" class="form-control" placeholder="https://ejemplo.com/imagen.jpg">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">📊 Stock Disponible</label>
+                            <input type="number" id="editStock" class="form-control" readonly>
+                            <small class="text-muted">El stock se calcula automáticamente desde las cuentas disponibles</small>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-gradient-primary" onclick="saveProductChanges()">Guardar Cambios</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Import Modal -->
+    <div class="modal fade" id="importModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-gradient-success text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-upload me-2"></i>
+                        Importar Cuentas desde Texto
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <ul class="nav nav-tabs mb-3" id="importTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="individual-tab" data-bs-toggle="tab" data-bs-target="#individual" type="button" role="tab">
+                                <i class="fas fa-user me-2"></i>Cuentas Individuales
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="bulk-tab" data-bs-toggle="tab" data-bs-target="#bulk" type="button" role="tab">
+                                <i class="fas fa-envelope me-2"></i>Almacén de Correos
+                            </button>
+                        </li>
+                    </ul>
+                    
+                    <div class="tab-content" id="importTabContent">
+                        <!-- Individual Accounts Tab -->
+                        <div class="tab-pane fade show active" id="individual" role="tabpanel">
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <strong>Formato:</strong> Nombre del servicio en una línea, seguido de email:contraseña en la siguiente línea.
+                                <br><small>Ejemplo:<br>Netflix Premium<br>usuario@email.com:password123</small>
+                            </div>
+                            <form id="importForm" method="POST" action="{{ url_for('import_accounts') }}">
+                                <input type="hidden" name="csrf_token" value="{{ session.csrf_token }}">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">📂 Categoría por defecto</label>
+                                    <select name="default_type" class="form-select" required>
+                                        <option value="Streaming">🎬 Streaming</option>
+                                        <option value="Music">🎵 Música</option>
+                                        <option value="Gaming">🎮 Gaming</option>
+                                        <option value="Productivity">💼 Productividad</option>
+                                        <option value="Cloud">☁️ Cloud</option>
+                                        <option value="VPN">🔒 VPN</option>
+                                        <option value="Other">📦 Otro</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">💰 Precio por defecto (USD)</label>
+                                    <input type="number" name="default_price" class="form-control" step="0.01" min="0" value="15.99" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">📝 Texto de cuentas</label>
+                                    <textarea name="accounts_text" class="form-control" rows="10" placeholder="Netflix Premium&#10;usuario1@email.com:password123&#10;&#10;Spotify Premium&#10;usuario2@email.com:password456" required></textarea>
+                                </div>
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="checkbox" name="validate_accounts" id="validateAccounts" checked>
+                                    <label class="form-check-label" for="validateAccounts">
+                                        🔍 Validar cuentas automáticamente (marcar como funcional/fail)
+                                    </label>
+                                </div>
+                            </form>
+                        </div>
+                        
+                        <!-- Bulk Email Tab -->
+                        <div class="tab-pane fade" id="bulk" role="tabpanel">
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                <strong>Almacén de Correos:</strong> Todos los correos tendrán la misma contraseña del servicio.
+                                <br><small>Ejemplo: Claro Video con contraseña "clarovideo123" para todos los correos</small>
+                            </div>
+                            <form id="bulkForm" method="POST" action="{{ url_for('import_bulk_emails') }}">
+                                <input type="hidden" name="csrf_token" value="{{ session.csrf_token }}">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label fw-bold">🏷️ Nombre del Servicio</label>
+                                            <input type="text" name="service_name" class="form-control" placeholder="Claro Video" required>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label fw-bold">🔑 Contraseña Universal</label>
+                                            <input type="text" name="universal_password" class="form-control" placeholder="clarovideo123" required>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label class="form-label fw-bold">📂 Categoría</label>
+                                            <select name="bulk_type" class="form-select" required>
+                                                <option value="Streaming">🎬 Streaming</option>
+                                                <option value="Music">🎵 Música</option>
+                                                <option value="Gaming">🎮 Gaming</option>
+                                                <option value="Productivity">💼 Productividad</option>
+                                                <option value="Cloud">☁️ Cloud</option>
+                                                <option value="VPN">🔒 VPN</option>
+                                                <option value="Other">📦 Otro</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label class="form-label fw-bold">💰 Precio (USD)</label>
+                                            <input type="number" name="bulk_price" class="form-control" step="0.01" min="0" value="9.99" required>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label class="form-label fw-bold">📊 Cantidad Total</label>
+                                            <input type="number" name="total_emails" class="form-control" min="1" value="10" required>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">📧 Lista de Correos (uno por línea)</label>
+                                    <textarea name="emails_list" class="form-control" rows="8" placeholder="correo1@gmail.com&#10;correo2@hotmail.com&#10;correo3@yahoo.com" required></textarea>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" form="importForm" class="btn btn-gradient-success" id="importBtn">
+                        <i class="fas fa-upload me-2"></i>
+                        Importar Cuentas
+                    </button>
+                    <button type="submit" form="bulkForm" class="btn btn-gradient-info" id="bulkBtn" style="display:none;">
+                        <i class="fas fa-envelope me-2"></i>
+                        Crear Almacén
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Account Details Modal -->
+    <div class="modal fade" id="accountModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-gradient-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-eye me-2"></i>
+                        Detalles de la Cuenta
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="accountDetails">
+                    <!-- Content loaded dynamically -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    <button type="button" class="btn btn-gradient-primary" onclick="copyAccountDetails()">Copiar Datos</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal de Mantenimiento Mejorado -->
+    <div class="modal fade" id="maintenanceModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header bg-gradient-warning text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-tools me-2"></i>
+                        Centro de Mantenimiento del Sistema
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-4">
+                        <!-- Limpieza de Datos -->
+                        <div class="col-md-6">
+                            <div class="card h-100 border-danger">
+                                <div class="card-header bg-danger text-white">
+                                    <h6 class="mb-0"><i class="fas fa-broom me-2"></i>Limpieza de Datos</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="d-grid gap-2">
+                                        <button class="btn btn-outline-danger btn-sm" onclick="cleanDuplicates()">
+                                            <i class="fas fa-copy me-2"></i>Eliminar Duplicados
+                                        </button>
+                                        <button class="btn btn-outline-danger btn-sm" onclick="cleanFailedAccounts()">
+                                            <i class="fas fa-times-circle me-2"></i>Limpiar Cuentas Fallidas
+                                        </button>
+                                        <button class="btn btn-outline-danger btn-sm" onclick="validateAllAccounts()">
+                                            <i class="fas fa-check-double me-2"></i>Validar Todas las Cuentas
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Optimización -->
+                        <div class="col-md-6">
+                            <div class="card h-100 border-success">
+                                <div class="card-header bg-success text-white">
+                                    <h6 class="mb-0"><i class="fas fa-rocket me-2"></i>Optimización</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="d-grid gap-2">
+                                        <button class="btn btn-outline-success btn-sm" onclick="optimizeDatabase()">
+                                            <i class="fas fa-database me-2"></i>Optimizar Base de Datos
+                                        </button>
+                                        <button class="btn btn-outline-success btn-sm" onclick="resetCounters()">
+                                            <i class="fas fa-redo me-2"></i>Resetear Contadores
+                                        </button>
+                                        <button class="btn btn-outline-success btn-sm" onclick="clearCache()">
+                                            <i class="fas fa-trash me-2"></i>Limpiar Caché
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Estadísticas -->
+                        <div class="col-md-6">
+                            <div class="card h-100 border-info">
+                                <div class="card-header bg-info text-white">
+                                    <h6 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Estadísticas</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="d-grid gap-2">
+                                        <button class="btn btn-outline-info btn-sm" onclick="showDetailedStats()">
+                                            <i class="fas fa-chart-pie me-2"></i>Estadísticas Detalladas
+                                        </button>
+                                        <button class="btn btn-outline-info btn-sm" onclick="generateReport()">
+                                            <i class="fas fa-file-alt me-2"></i>Generar Reporte
+                                        </button>
+                                        <button class="btn btn-outline-info btn-sm" onclick="backupData()">
+                                            <i class="fas fa-download me-2"></i>Respaldar Datos
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Mantenimiento Completo -->
+                        <div class="col-md-6">
+                            <div class="card h-100 border-warning">
+                                <div class="card-header bg-warning text-dark">
+                                    <h6 class="mb-0"><i class="fas fa-cogs me-2"></i>Mantenimiento Completo</h6>
+                                </div>
+                                <div class="card-body">
+                                    <p class="text-muted small mb-3">Ejecuta todas las tareas de mantenimiento automáticamente</p>
+                                    <div class="d-grid">
+                                        <button class="btn btn-warning" onclick="runFullMaintenance()">
+                                            <i class="fas fa-magic me-2"></i>Ejecutar Mantenimiento Completo
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>Cerrar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Settings Modal -->
+    <div class="modal fade" id="settingsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-gradient-info text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-cog me-2"></i>
+                        Configuración del Sistema
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card border-primary">
+                                <div class="card-header bg-primary text-white">
+                                    <h6 class="mb-0"><i class="fas fa-palette me-2"></i>Apariencia</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" id="darkMode">
+                                        <label class="form-check-label" for="darkMode">Modo Oscuro</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="animations" checked>
+                                        <label class="form-check-label" for="animations">Animaciones</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card border-success">
+                                <div class="card-header bg-success text-white">
+                                    <h6 class="mb-0"><i class="fas fa-bell me-2"></i>Notificaciones</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" id="emailNotif" checked>
+                                        <label class="form-check-label" for="emailNotif">Email</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="soundNotif">
+                                        <label class="form-check-label" for="soundNotif">Sonido</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-info" onclick="saveSettings()">Guardar Cambios</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Import Report Modal -->
+    <div class="modal fade" id="importReportModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-gradient-danger text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Reporte de Importación
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="reportContent">
+                        <!-- Contenido cargado dinámicamente -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    <button type="button" class="btn btn-gradient-primary" onclick="copyReportData()">Copiar Reporte</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Edit Account Modal -->
+    <div class="modal fade" id="editModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-gradient-warning text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-edit me-2"></i>
+                        Editar Cuenta
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editForm" method="POST" action="{{ url_for('edit_account') }}">
+                        <input type="hidden" name="csrf_token" value="{{ session.csrf_token }}">
+                        <input type="hidden" name="account_id" id="editAccountId">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">📧 Email</label>
+                                    <input type="email" name="email" id="editEmail" class="form-control" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">🔑 Contraseña</label>
+                                    <input type="text" name="password" id="editPassword" class="form-control" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">🏷️ Nombre del Servicio</label>
+                                    <input type="text" name="name" id="editName" class="form-control" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">📂 Categoría</label>
+                                    <select name="type" id="editType" class="form-select" required>
+                                        <option value="Streaming">🎬 Streaming</option>
+                                        <option value="Music">🎵 Música</option>
+                                        <option value="Gaming">🎮 Gaming</option>
+                                        <option value="Productivity">💼 Productividad</option>
+                                        <option value="Cloud">☁️ Cloud</option>
+                                        <option value="VPN">🔒 VPN</option>
+                                        <option value="Other">📦 Otro</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">💰 Precio (USD)</label>
+                                    <input type="number" name="price" id="editPrice" class="form-control" step="0.01" min="0" required>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">📊 Estado</label>
+                                    <select name="status" id="editStatus" class="form-select" required>
+                                        <option value="available">✅ Disponible</option>
+                                        <option value="sold">💰 Vendida</option>
+                                        <option value="failed">❌ No Funcional</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">📊 Cantidad</label>
+                                    <input type="number" name="quantity" id="editQuantity" class="form-control" min="1" value="1" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">📝 Descripción (Opcional)</label>
+                            <textarea name="description" id="editDescription" class="form-control" rows="3" placeholder="Notas adicionales sobre esta cuenta..."></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" form="editForm" class="btn btn-gradient-warning">
+                        <i class="fas fa-save me-2"></i>
+                        Guardar Cambios
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Maintenance Modal -->
+    <div class="modal fade" id="maintenanceModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-gradient-warning text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-tools me-2"></i>
+                        Mantenimiento del Sistema
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-broom me-2"></i>Limpieza de Datos</h6>
+                            <div class="mb-3">
+                                <button class="btn btn-outline-danger btn-sm w-100" onclick="cleanDuplicates()">
+                                    <i class="fas fa-copy me-2"></i>Eliminar Duplicados
+                                </button>
+                            </div>
+                            <div class="mb-3">
+                                <button class="btn btn-outline-warning btn-sm w-100" onclick="cleanFailedAccounts()">
+                                    <i class="fas fa-times-circle me-2"></i>Limpiar No Funcionales
+                                </button>
+                            </div>
+                            <div class="mb-3">
+                                <button class="btn btn-outline-info btn-sm w-100" onclick="validateAllAccounts()">
+                                    <i class="fas fa-check-double me-2"></i>Validar Todas las Cuentas
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-chart-bar me-2"></i>Estadísticas</h6>
+                            <div class="mb-3">
+                                <button class="btn btn-outline-primary btn-sm w-100" onclick="showDetailedStats()">
+                                    <i class="fas fa-analytics me-2"></i>Estadísticas Detalladas
+                                </button>
+                            </div>
+                            <div class="mb-3">
+                                <button class="btn btn-outline-success btn-sm w-100" onclick="optimizeDatabase()">
+                                    <i class="fas fa-database me-2"></i>Optimizar Base de Datos
+                                </button>
+                            </div>
+                            <div class="mb-3">
+                                <button class="btn btn-outline-secondary btn-sm w-100" onclick="resetCounters()">
+                                    <i class="fas fa-redo me-2"></i>Reiniciar Contadores
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <hr>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    <button type="button" class="btn btn-gradient-warning" onclick="runFullMaintenance()">
+                        <i class="fas fa-magic me-2"></i>Mantenimiento Completo
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bulk Actions Modal -->
+    <div class="modal fade" id="bulkModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-gradient-danger text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-trash me-2"></i>
+                        Eliminar Cuentas Seleccionadas
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>¡Atención!</strong> Esta acción no se puede deshacer.
+                    </div>
+                    <p>¿Estás seguro de que deseas eliminar <span id="selectedCount">0</span> cuentas seleccionadas?</p>
+                    <div id="selectedAccounts"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-gradient-danger" onclick="confirmBulkDelete()">Eliminar Todo</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Toast Container -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+        <div id="successToast" class="toast" role="alert">
+            <div class="toast-header bg-success text-white">
+                <i class="fas fa-check-circle me-2"></i>
+                <strong class="me-auto">Éxito</strong>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
+            </div>
+            <div class="toast-body"></div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Tab switching for import modal
+        document.addEventListener('DOMContentLoaded', function() {
+            const individualTab = document.getElementById('individual-tab');
+            const bulkTab = document.getElementById('bulk-tab');
+            const importBtn = document.getElementById('importBtn');
+            const bulkBtn = document.getElementById('bulkBtn');
+            
+            individualTab.addEventListener('click', function() {
+                importBtn.style.display = 'inline-block';
+                bulkBtn.style.display = 'none';
+            });
+            
+            bulkTab.addEventListener('click', function() {
+                importBtn.style.display = 'none';
+                bulkBtn.style.display = 'inline-block';
+            });
+        });
+    </script>
+    <!-- Analytics Modal -->
+    <div class="modal fade" id="analyticsModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header bg-gradient-info text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-chart-pie me-2"></i>
+                        Estadísticas y Análisis
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="analyticsContent">
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Cargando...</span>
+                        </div>
+                        <p class="mt-2">Cargando estadísticas...</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    <button type="button" class="btn btn-gradient-success" onclick="exportAnalytics()">
+                        <i class="fas fa-download me-1"></i>Exportar CSV
+                    </button>
+                    <button type="button" class="btn btn-gradient-primary" onclick="generatePDFReport()">
+                        <i class="fas fa-file-pdf me-1"></i>Generar PDF
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script src="{{ url_for('static', filename='admin.js') }}"></script>
+    
+    <script>
+        // Cargar mensajes de usuarios al iniciar
+        document.addEventListener('DOMContentLoaded', function() {
+            loadAdminComments();
+            loadAdminSuggestions();
+        });
+        
+        function loadAdminComments() {
+            fetch('/api/comments')
+                .then(response => response.json())
+                .then(data => {
+                    const container = document.getElementById('adminCommentsContainer');
+                    if (data.comments && data.comments.length > 0) {
+                        container.innerHTML = data.comments.map(comment => `
+                            <div class="comment-item mb-3 p-3 border rounded">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <strong class="text-primary">${comment.name || 'Usuario Anónimo'}</strong>
+                                    <small class="text-muted">${comment.date || 'Fecha no disponible'}</small>
+                                </div>
+                                <div class="rating mb-2">
+                                    ${'★'.repeat(comment.rating || 5)}${'☆'.repeat(5-(comment.rating || 5))}
+                                </div>
+                                <p class="mb-0">${comment.text || 'Sin comentario'}</p>
+                            </div>
+                        `).join('');
+                    } else {
+                        container.innerHTML = '<div class="text-center py-3"><p class="text-muted mb-0">No hay comentarios aún</p></div>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading comments:', error);
+                    document.getElementById('adminCommentsContainer').innerHTML = '<div class="text-center py-3"><p class="text-danger mb-0">Error al cargar comentarios</p></div>';
+                });
+        }
+        
+        function loadAdminSuggestions() {
+            fetch('/api/admin/suggestions')
+                .then(response => response.json())
+                .then(data => {
+                    const container = document.getElementById('adminSuggestionsContainer');
+                    if (data.suggestions && data.suggestions.length > 0) {
+                        container.innerHTML = data.suggestions.map(suggestion => `
+                            <div class="suggestion-item mb-3 p-3 border rounded">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <strong class="text-success">${suggestion.service_name || 'Servicio no especificado'}</strong>
+                                    <small class="text-muted">${suggestion.date || 'Fecha no disponible'}</small>
+                                </div>
+                                <p class="mb-1"><i class="fas fa-user text-primary"></i> <strong>${suggestion.customer_name || 'Cliente anónimo'}</strong></p>
+                                <p class="mb-1"><i class="fas fa-envelope text-info"></i> ${suggestion.customer_email || 'Email no disponible'}</p>
+                                ${suggestion.phone ? `<p class="mb-1"><i class="fab fa-whatsapp text-success"></i> ${suggestion.phone}</p>` : ''}
+                                <p class="mb-0 text-muted">Solicitud de producto</p>
+                            </div>
+                        `).join('');
+                    } else {
+                        container.innerHTML = '<div class="text-center py-3"><p class="text-muted mb-0">No hay solicitudes aún</p></div>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading suggestions:', error);
+                    document.getElementById('adminSuggestionsContainer').innerHTML = '<div class="text-center py-3"><p class="text-danger mb-0">Error al cargar solicitudes</p></div>';
+                });
+        }
+        
+        function refreshComments() {
+            document.getElementById('adminCommentsContainer').innerHTML = '<div class="text-center py-3"><i class="fas fa-spinner fa-spin"></i><p class="text-muted mb-0">Cargando...</p></div>';
+            loadAdminComments();
+        }
+        
+        function refreshSuggestions() {
+            document.getElementById('adminSuggestionsContainer').innerHTML = '<div class="text-center py-3"><i class="fas fa-spinner fa-spin"></i><p class="text-muted mb-0">Cargando...</p></div>';
+            loadAdminSuggestions();
+        }
+    </script>
+    
+    <script>
+        // Pagination functionality
+        let currentPage = 1;
+        const itemsPerPage = 10;
+        let allRows = [];
+        
+        function initializePagination() {
+            const table = document.getElementById('accountsTable');
+            const tbody = table.querySelector('tbody');
+            allRows = Array.from(tbody.querySelectorAll('tr'));
+            
+            if (allRows.length > 0 && !allRows[0].querySelector('.no-data-state')) {
+                showPage(1);
+                updatePaginationControls();
+            }
+        }
+        
+        function showPage(page) {
+            currentPage = page;
+            const startIndex = (page - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
+            
+            allRows.forEach((row, index) => {
+                if (index >= startIndex && index < endIndex) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+            
+            // Update range display
+            const totalItems = allRows.length;
+            const currentStart = startIndex + 1;
+            const currentEnd = Math.min(endIndex, totalItems);
+            document.getElementById('currentRange').textContent = `${currentStart}-${currentEnd}`;
+            document.getElementById('totalAccounts').textContent = totalItems;
+        }
+        
+        function updatePaginationControls() {
+            const totalPages = Math.ceil(allRows.length / itemsPerPage);
+            const pagination = document.getElementById('pagination');
+            
+            if (totalPages <= 1) {
+                pagination.style.display = 'none';
+                return;
+            }
+            
+            pagination.style.display = 'flex';
+            pagination.innerHTML = '';
+            
+            // Previous button
+            const prevLi = document.createElement('li');
+            prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
+            prevLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(${currentPage - 1})">Anterior</a>`;
+            pagination.appendChild(prevLi);
+            
+            // Page numbers
+            for (let i = 1; i <= totalPages; i++) {
+                if (i === 1 || i === totalPages || (i >= currentPage - 2 && i <= currentPage + 2)) {
+                    const li = document.createElement('li');
+                    li.className = `page-item ${i === currentPage ? 'active' : ''}`;
+                    li.innerHTML = `<a class="page-link" href="#" onclick="changePage(${i})">${i}</a>`;
+                    pagination.appendChild(li);
+                } else if (i === currentPage - 3 || i === currentPage + 3) {
+                    const li = document.createElement('li');
+                    li.className = 'page-item disabled';
+                    li.innerHTML = '<span class="page-link">...</span>';
+                    pagination.appendChild(li);
+                }
+            }
+            
+            // Next button
+            const nextLi = document.createElement('li');
+            nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
+            nextLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(${currentPage + 1})">Siguiente</a>`;
+            pagination.appendChild(nextLi);
+        }
+        
+        function changePage(page) {
+            const totalPages = Math.ceil(allRows.length / itemsPerPage);
+            if (page >= 1 && page <= totalPages) {
+                showPage(page);
+                updatePaginationControls();
+            }
+        }
+        
+        // Initialize pagination on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(initializePagination, 100);
+        });
+    </script>
+</body>
+</html>
