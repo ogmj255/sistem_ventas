@@ -1,0 +1,39 @@
+services:
+  - type: web
+    name: sistema-ventas
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python app.py
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: FLASK_ENV
+        value: production
+      - key: FLASK_DEBUG
+        value: false
+      - key: MONGO_URI
+        value: mongodb+srv://ogmoscosoj_db_user:us64dOby4EtV7PiK@ventasdb.mongodb.net/ventasdb?retryWrites=true&w=majority
+      - key: WTF_CSRF_ENABLED
+        value: true
+      - key: SESSION_COOKIE_SECURE
+        value: true
+      - key: SESSION_COOKIE_HTTPONLY
+        value: true
+      - key: APP_NAME
+        value: GabStore
+      - key: ADMIN_EMAIL
+        value: admin@sistema.com
+      - key: TIMEZONE
+        value: America/Guayaquil
+      - key: WHATSAPP_NUMBER
+        value: +593985051676
+      - key: RATELIMIT_STORAGE_URL
+        value: memory://
+      - key: RATELIMIT_DEFAULT
+        value: 100 per hour
+      - key: IMAGE_RESIZE_SERVICE
+        value: images.weserv.nl
+      - key: DEFAULT_IMAGE_FORMAT
+        value: 400x200
+      - key: ITEMS_PER_PAGE
+        value: 10

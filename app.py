@@ -339,12 +339,12 @@ import_report = {
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', secrets.token_hex(32))
-app.config['MONGO_URI'] = os.environ.get('MONGO_URI', 'mongodb+srv://ogmoscosoj_db_user:us64dOby4EtV7PiK@ventasdb.xg0krgx.mongodb.net/sistema_ventas?retryWrites=true&w=majority&appName=ventasdb')
+app.config['MONGO_URI'] = os.environ.get('MONGO_URI', 'mongodb+srv://ogmoscosoj_db_user:us64dOby4EtV7PiK@ventasdb.mongodb.net/ventasdb?retryWrites=true&w=majority')
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=2)
 
-# Configuración de seguridad (desarrollo)
-app.config['SESSION_COOKIE_SECURE'] = False  # True solo en HTTPS
-app.config['SESSION_COOKIE_HTTPONLY'] = True
+# Configuración de seguridad
+app.config['SESSION_COOKIE_SECURE'] = os.environ.get('SESSION_COOKIE_SECURE', 'False').lower() == 'true'
+app.config['SESSION_COOKIE_HTTPONLY'] = os.environ.get('SESSION_COOKIE_HTTPONLY', 'True').lower() == 'true'
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
 # Inicializar extensiones de seguridad
@@ -1485,8 +1485,12 @@ def get_suggestions():
     return jsonify({'suggestions': suggestions_data})
 
 if __name__ == '__main__':
-    print("🚀 SISTEMA DE VENTAS - VERSIÓN SIMPLIFICADA")
-    print("📍 URL: http://localhost:5000")
-    print("👤 Admin: admin@sistema.com / Admin123!")
+    port = int(os.environ.get('PORT', 5000))
+    debug = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true'
     
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    print("🚀 SISTEMA DE VENTAS - GABSTORE")
+    print(f"📍 URL: http://localhost:{port}")
+    print(f"👤 Admin: {os.environ.get('ADMIN_EMAIL', 'admin@sistema.com')} / Admin123!")
+    print(f"🌍 Timezone: {os.environ.get('TIMEZONE', 'America/Guayaquil')}")
+    
+    app.run(host='0.0.0.0', port=port, debug=debug)
